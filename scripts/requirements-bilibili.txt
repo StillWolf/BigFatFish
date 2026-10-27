@@ -1,0 +1,6 @@
+playwright==1.64.0
+faster-whisper==1.2.1
+av==15.1.0
+yt-dlp==2026.10.21
+Pillow==13.0.0
+aiohttp==3.14.5

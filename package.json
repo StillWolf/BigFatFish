@@ -1,0 +1,16 @@
+{
+  "name": "bigfatfish",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A self-hosted QQ companion with daily activities, private diaries and compact video observations",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "dsh-qq-onebot-bridge": "file:./dsh-qq-onebot-bridge",
+    "dsh-wechat-ai-bridge": "file:./dsh-wechat-ai-bridge",
+    "@deepseek-ai/dsh-tool-bash": "0.2.1-rc.2"
+  }
+}

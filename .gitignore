@@ -1,0 +1,26 @@
+# Local credentials and runtime state
+.env
+.env.*
+!.env.example
+fish.config.json
+data/
+logs/
+dist/
+*.log
+*.pid
+*.sqlite*
+*.db*
+*.session
+*.pem
+*.key
+# Dependencies and generated assets
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+# Local SDKs / downloaded clients
+napcat/

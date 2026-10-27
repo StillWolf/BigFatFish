@@ -1,0 +1,82 @@
+name: bigfatfish
+services:
+  fish:
+    image: bigfatfish:local
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      args:
+        INSTALL_BILIBILI: ${FISH_INSTALL_BILIBILI:-1}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:${FISH_WEB_PORT:-3080}:3080"
+      - "127.0.0.1:${NAPCAT_WEB_PORT:-6099}:6099"
+      - "127.0.0.1:${BILIBILI_WEB_PORT:-6082}:6082"
+    volumes:
+      - ./data/app:/opt/fish/data
+      - ./data/dsh:/state/dsh
+      - ./data/napcat-config:/state/napcat-config
+      - ./data/fish.config.json:/run/fish/fish.config.json:ro
+    shm_size: 512mb
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  napcat:
+    image: ${NAPCAT_IMAGE:-mlikiowa/napcat-docker:latest}
+    restart: unless-stopped
+    network_mode: service:fish
+    depends_on:
+      fish:
+        condition: service_healthy
+        restart: true
+    environment:
+      ACCOUNT: ${ACCOUNT:?请先运行 bash install.sh}
+      WEBUI_TOKEN: ${NAPCAT_WEBUI_TOKEN:?请先运行 bash install.sh}
+      NAPCAT_UID: "0"
+      NAPCAT_GID: "0"
+    volumes:
+      - ./data/napcat-qq:/app/.config/QQ
+      - ./data/napcat-config:/app/napcat/config
+      - ./data/napcat-plugins:/app/napcat/plugins
+      # QQ must see files at exactly the paths returned by the fish tools.
+      - ./data/app:/opt/fish/data
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  wechat:
+    profiles: [wechat]
+    image: bigfatfish-wechat:local
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.wechat
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Asia/Shanghai
+      CUSTOM_USER: fish
+      PASSWORD: ${WECHAT_DESKTOP_PASSWORD:-}
+      AUTO_START_WECHAT: "true"
+      BOT_ENABLED: "true"
+      BOT_CONFIG_PATH: /config/config.yaml
+      MCP_PORT: "8000"
+      WECHAT_AI_MCP_TOKEN: ${WECHAT_AI_MCP_TOKEN:-}
+      WECHAT_AI_MCP_ADMIN_ENABLED: "false"
+      WECHAT_AI_MCP_WRITE_ENABLED: "true"
+      WECHAT_AI_DASHBOARD_USERNAME: fish
+      WECHAT_AI_DASHBOARD_PASSWORD: ${WECHAT_DESKTOP_PASSWORD:-}
+    volumes:
+      - ./data/app/wechat-runtime/config:/config
+    ports:
+      - "127.0.0.1:${WECHAT_WEB_PORT:-6081}:3000"
+    cap_add: [SYS_PTRACE]
+    security_opt: [seccomp:unconfined]
+    shm_size: 1gb
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

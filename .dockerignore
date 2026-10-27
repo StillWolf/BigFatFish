@@ -1,0 +1,17 @@
+.git
+**/.git
+.env
+.env.*
+!.env.example
+data
+logs
+dist
+napcat
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/*.log
+**/*.db*
+**/*.sqlite*
+**/.venv
+**/venv

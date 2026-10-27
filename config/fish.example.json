@@ -1,0 +1,14 @@
+{
+  "bot": { "name": "小肥鱼", "realName": "秦小鱼", "mentionNames": ["小肥鱼", "小鲸鱼", "秦小鱼", "DeepSeek"] },
+  "qq": {
+    "account": "",
+    "family": { "gege": "", "jiejie": "" },
+    "friends": [],
+    "allowUsers": [],
+    "allowGroups": [],
+    "proactiveGroup": ""
+  },
+  "features": { "activities": true, "diary": true, "bilibili": true, "tts": true, "wechat": false },
+  "model": "deepseek-flash",
+  "speech": { "voice": "zh-CN-XiaoyiNeural", "autoReply": false }
+}

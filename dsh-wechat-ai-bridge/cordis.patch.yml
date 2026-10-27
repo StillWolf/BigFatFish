@@ -1,0 +1,81 @@
+# Separate WeChat composition; existing QQ presets and transport stay independent.
+- insert:
+    - id: preset-fish-wechat
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: fish-wechat
+        name: 小肥鱼 · 微信
+        description: 独立微信会话，共用人设和静默活动
+        order: 21
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              complete: true
+              includeRuntimeContext: false
+              prefix: |
+                你和 QQ 机器人是同一个角色，名字与身份以 fish-persona 提供的人设为准。
+                具体人设由 fish-persona 提供。当前只与绑定的这个微信会话聊天。
+                普通回复正文自动发送；不要输出旁白、系统提示或转发说明。
+                日常闲聊用短句，认真求助时可以详细回答。
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: wechat-ai-bridge
+      name: dsh-wechat-ai-bridge
+      config:
+        mcpUrl: http://127.0.0.1:18100/mcp
+        tokenFile: ./data/wechat-runtime/runtime.env
+        pollIntervalMs: 2500
+        workspaceMode: per-chat
+        workspacePath: ./data/wechat-bridge/workspaces
+        workspaceTitle: 小肥鱼 · 微信
+        statePath: ./data/wechat-bridge/state.json
+        logPath: ./data/logs/wechat-bridge.log
+        agentPreset: fish-wechat
+        permissionPreset: read-only
+        workspaceTools: false
+        turnTimeoutMs: 240000
+        toolAllowlist:
+          - web_search
+          - web_fetch
+          - wechat_recent_messages
+          - fish_read_activity
+          - fish_list_files
+          - fish_read_file
+          - wechat_send_image
+          - wechat_say
+        mentionNames: [小肥鱼, 秦小鱼, 小鲸鱼, DeepSeek]
+        fish:
+          enabled: true
+          personaFile: ./data/qq-bridge/AGENTS.md
+          activityLog: ./data/qq-bridge/activity-log.jsonl
+          bindingsFile: ./data/wechat-bridge/bindings.json
+          injectFile: ./data/wechat-bridge/inject.jsonl
+          cursorFile: ./data/wechat-bridge/inject-cursor.json
+        reply:
+          private: true
+          groupMention: true
+          groupAll: true
+          attachAtInGroup: false
+          history: false
+          debounceMs: 800
+          maxReplyChars: 2000
+          maxPromptChars: 8000
+          maxRepliesPerMinute: 3
+          workingNoticeMs: 0
+          images: true
+          files: true

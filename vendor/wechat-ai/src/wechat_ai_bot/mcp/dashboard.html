@@ -1,0 +1,1705 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WeChat-AI 管理台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --band: #eef3f7;
+      --line: #d6dee7;
+      --text: #17212b;
+      --muted: #65758b;
+      --ok: #0f7b5f;
+      --warn: #9a6700;
+      --bad: #b42318;
+      --blue: #1d4ed8;
+      --cyan: #036672;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    button, input, textarea, select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+    button {
+      border: 1px solid #9aa8b7;
+      background: #fff;
+      color: var(--text);
+      border-radius: 6px;
+      min-height: 34px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--blue); color: var(--blue); }
+    button.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+    button.danger {
+      border-color: #e6a19b;
+      color: var(--bad);
+      background: #fff6f5;
+    }
+    input, textarea, select {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid #bac6d3;
+      border-radius: 6px;
+      padding: 7px 9px;
+      background: #fff;
+      color: var(--text);
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 18px;
+      background: #17212b;
+      color: #fff;
+      border-bottom: 1px solid #0f1720;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .header-sub {
+      margin-top: 2px;
+      color: #b9c4cf;
+      font-size: 12px;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: 184px minmax(0, 1fr);
+      min-height: calc(100vh - 59px);
+    }
+    nav {
+      background: #e8edf2;
+      border-right: 1px solid var(--line);
+      padding: 12px 10px;
+    }
+    .nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+      border-color: transparent;
+      background: transparent;
+      color: #344255;
+      text-align: left;
+    }
+    .nav-btn.active {
+      background: #fff;
+      color: var(--blue);
+      border-color: var(--line);
+      box-shadow: var(--shadow);
+    }
+    main {
+      min-width: 0;
+      padding: 14px;
+    }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-width: 0;
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f9fbfd;
+    }
+    .body { padding: 12px; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+    .kv {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .kv th, .kv td {
+      padding: 7px 8px;
+      border-bottom: 1px solid #edf1f5;
+      vertical-align: top;
+      word-break: break-word;
+    }
+    .kv th {
+      width: 38%;
+      color: var(--muted);
+      text-align: left;
+      font-weight: 600;
+    }
+    .kv tr:last-child th,
+    .kv tr:last-child td { border-bottom: 0; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      white-space: nowrap;
+    }
+    .ok { color: var(--ok); border-color: #9bd5c7; background: #eefaf6; }
+    .warn { color: var(--warn); border-color: #e9c46a; background: #fff8e1; }
+    .bad { color: var(--bad); border-color: #f0a7a0; background: #fff1f0; }
+    .info { color: var(--cyan); border-color: #8bcad3; background: #eefbfc; }
+    .muted { color: var(--muted); }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+    .field { grid-column: span 4; }
+    .field.wide { grid-column: span 8; }
+    .field.full { grid-column: span 12; }
+    .field label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .item {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fff;
+      min-width: 0;
+    }
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 5px;
+    }
+    .title {
+      font-weight: 700;
+      min-width: 0;
+      word-break: break-word;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .message-text {
+      margin-top: 6px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .layout-img {
+      width: 100%;
+      max-height: 650px;
+      object-fit: contain;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .log {
+      margin: 0;
+      max-height: 620px;
+      overflow: auto;
+      padding: 12px;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 6px;
+      line-height: 1.45;
+    }
+    .statusline {
+      min-height: 22px;
+      color: var(--muted);
+    }
+    .wechat-shell {
+      display: grid;
+      grid-template-columns: 310px minmax(420px, 1fr) 330px;
+      gap: 12px;
+      height: calc(100vh - 92px);
+      min-height: 640px;
+    }
+    .wechat-shell section {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+    }
+    .wechat-scroll {
+      overflow: auto;
+      min-height: 0;
+    }
+    .wechat-search {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      background: #f9fbfd;
+    }
+    .wechat-filter {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #f9fbfd;
+    }
+    .wechat-mode {
+      min-width: 0;
+      padding: 0 6px;
+      border-color: #c5d0dc;
+      background: #fff;
+      color: #344255;
+    }
+    .wechat-mode.active {
+      border-color: var(--blue);
+      background: #eaf1ff;
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .chat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .chat-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      border-bottom: 1px solid #edf1f5;
+      border-radius: 0;
+      text-align: left;
+      background: #fff;
+      color: var(--text);
+      min-height: 64px;
+    }
+    .chat-item:hover,
+    .chat-item.active {
+      background: #eef5ff;
+      color: var(--text);
+      border-color: #d6e6ff;
+    }
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 6px;
+      background: #dbeafe;
+      color: #174ea6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      overflow: hidden;
+    }
+    .avatar img,
+    .bubble-avatar img,
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .chat-main {
+      min-width: 0;
+    }
+    .chat-topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+      margin-bottom: 3px;
+    }
+    .chat-name {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chat-time {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .chat-preview {
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #f9fbfd;
+    }
+    .chat-header-title {
+      min-width: 0;
+    }
+    .chat-header-title strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 12px;
+      overflow: auto;
+      background: #f4f6f8;
+    }
+    .bubble-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 8px 0;
+    }
+    .bubble-row.out {
+      justify-content: flex-end;
+    }
+    .bubble-row.in {
+      justify-content: flex-start;
+    }
+    .bubble-avatar {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      border-radius: 6px;
+      background: #dbeafe;
+      color: #174ea6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .bubble-wrap {
+      max-width: min(72%, 760px);
+    }
+    .bubble-meta {
+      margin: 0 4px 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .bubble-row.out .bubble-meta {
+      text-align: right;
+    }
+    .bubble {
+      padding: 9px 11px;
+      border: 1px solid #dbe3ec;
+      border-radius: 8px;
+      background: #fff;
+      white-space: pre-wrap;
+      line-height: 1.48;
+      word-break: break-word;
+    }
+    .bubble-row.out .bubble {
+      background: #dff4e8;
+      border-color: #b6e0ca;
+    }
+    .media-image,
+    .media-video {
+      display: block;
+      max-width: min(420px, 100%);
+      max-height: 420px;
+      border-radius: 6px;
+      border: 1px solid #dbe3ec;
+      background: #f8fafc;
+    }
+    .media-video {
+      width: min(420px, 100%);
+    }
+    .file-card,
+    .link-card,
+    .contact-card {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 10px;
+      min-width: min(360px, 100%);
+      padding: 10px;
+      border: 1px solid #dbe3ec;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      text-decoration: none;
+      white-space: normal;
+    }
+    .bubble-row.out .file-card,
+    .bubble-row.out .link-card,
+    .bubble-row.out .contact-card {
+      background: #f7fffa;
+    }
+    .file-icon,
+    .link-cover,
+    .contact-cover {
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #eaf1ff;
+      color: #1d4ed8;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .link-cover img,
+    .contact-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .contact-cover {
+      border-radius: 50%;
+    }
+    .media-title {
+      display: block;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .media-sub {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .mini-map {
+      width: min(360px, 100%);
+      padding: 10px;
+      border: 1px solid #dbe3ec;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #e0f2fe, #f8fafc 55%, #dcfce7);
+      white-space: normal;
+    }
+    .mini-map-pin {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      margin-bottom: 8px;
+      box-shadow: 0 6px 12px rgba(239, 68, 68, 0.25);
+    }
+    .bubble-extra {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px solid rgba(100, 116, 139, 0.18);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .profile-head {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .profile-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #dbeafe;
+      color: #174ea6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-weight: 800;
+    }
+    .composer {
+      border-top: 1px solid var(--line);
+      padding: 10px;
+      background: #fff;
+    }
+    .composer textarea {
+      min-height: 90px;
+    }
+    .composer-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .detail-block {
+      padding: 10px 12px;
+      border-bottom: 1px solid #edf1f5;
+    }
+    .member-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 8px;
+    }
+    .member-chip {
+      min-width: 0;
+      padding: 7px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .member-chip .avatar {
+      width: 34px;
+      height: 34px;
+      margin: 0 auto;
+      font-size: 12px;
+    }
+    @media (max-width: 960px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .shell { grid-template-columns: 1fr; }
+      .wechat-shell {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .wechat-shell section {
+        min-height: 420px;
+      }
+      .bubble-wrap {
+        max-width: 88%;
+      }
+      .file-card,
+      .link-card,
+      .contact-card {
+        min-width: 0;
+      }
+      nav {
+        position: sticky;
+        top: 72px;
+        z-index: 9;
+        display: flex;
+        overflow-x: auto;
+        gap: 6px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .nav-btn {
+        width: auto;
+        min-width: 110px;
+        margin: 0;
+        justify-content: center;
+      }
+      main { padding: 10px; }
+      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8, .span-12,
+      .field, .field.wide, .field.full { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>WeChat-AI 管理台</h1>
+      <div id="stamp" class="header-sub">加载中</div>
+    </div>
+    <div class="toolbar">
+      <button id="refresh">刷新状态</button>
+      <button id="resetWindow" class="primary">重置窗口尺寸</button>
+      <button id="discoverDatKeys">发现图片密钥</button>
+      <button id="rescanDb">重扫数据库</button>
+      <button id="pauseMessages">暂停数据库监听</button>
+      <button id="resumeMessages">恢复数据库监听</button>
+    </div>
+  </header>
+  <div class="shell">
+    <nav>
+      <button class="nav-btn active" data-tab="overview">总览</button>
+      <button class="nav-btn" data-tab="wechat">微信</button>
+      <button class="nav-btn" data-tab="database">数据库</button>
+      <button class="nav-btn" data-tab="messages">消息</button>
+      <button class="nav-btn" data-tab="rpa">RPA</button>
+      <button class="nav-btn" data-tab="window">窗口</button>
+      <button class="nav-btn" data-tab="logs">日志</button>
+    </nav>
+    <main>
+      <div id="overview" class="tab active">
+        <div class="grid">
+          <section class="span-3"><h2>运行时</h2><div id="runtime" class="body"></div></section>
+          <section class="span-3"><h2>Bot</h2><div id="bot" class="body"></div></section>
+          <section class="span-3"><h2>队列</h2><div id="queues" class="body"></div></section>
+          <section class="span-3"><h2>输入源</h2><div id="inputServices" class="body"></div></section>
+          <section class="span-4"><h2>服务</h2><div id="services" class="body"></div></section>
+          <section class="span-4"><h2>进程</h2><div id="processes" class="body"></div></section>
+          <section class="span-4"><h2>插件</h2><div id="plugins" class="body"></div></section>
+          <section class="span-12"><h2>数据库快照</h2><div id="databaseOverview" class="body"></div></section>
+        </div>
+      </div>
+
+      <div id="wechat" class="tab">
+        <div class="wechat-shell">
+          <section>
+            <h2>会话</h2>
+            <div class="wechat-search">
+              <input id="wechatSearch" placeholder="搜索联系人、群聊、wxid" autocomplete="off">
+              <button id="wechatSearchBtn">搜索</button>
+            </div>
+            <div class="wechat-filter">
+              <button class="wechat-mode active" data-wechat-mode="recent">最近</button>
+              <button class="wechat-mode" data-wechat-mode="contacts">通讯录</button>
+              <button class="wechat-mode" data-wechat-mode="rooms">群聊</button>
+            </div>
+            <div id="wechatListStatus" class="statusline" style="padding: 8px 10px;"></div>
+            <div id="wechatChatList" class="chat-list wechat-scroll"></div>
+          </section>
+          <section>
+            <div class="chat-header">
+              <div class="chat-header-title">
+                <strong id="wechatChatTitle">选择会话</strong>
+                <div id="wechatChatSub" class="sub">最近会话会显示在左侧</div>
+              </div>
+              <div class="actions">
+                <button id="wechatReloadChat">刷新消息</button>
+                <button id="wechatLoadMedia">媒体</button>
+              </div>
+            </div>
+            <div id="wechatMessages" class="chat-messages"></div>
+            <div class="composer">
+              <textarea id="wechatComposer" placeholder="输入消息，点击发送文本"></textarea>
+              <div class="composer-actions">
+                <div id="wechatSendStatus" class="statusline"></div>
+                <div class="actions">
+                  <input id="wechatAtUser" placeholder="@ 用户名" style="width: 150px;">
+                  <button id="wechatSendText" class="primary">发送文本</button>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h2>详情</h2>
+            <div id="wechatDetail" class="wechat-scroll"></div>
+          </section>
+        </div>
+      </div>
+
+      <div id="database" class="tab">
+        <div class="grid">
+          <section class="span-5"><h2>SQLCipher</h2><div id="databaseDetail" class="body"></div></section>
+          <section class="span-7"><h2>联系人搜索</h2><div class="body">
+            <div class="row">
+              <div class="field wide">
+                <label for="contactQuery">昵称 / 备注 / wxid</label>
+                <input id="contactQuery" autocomplete="off">
+              </div>
+              <div class="field">
+                <button id="searchContacts" class="primary">搜索</button>
+              </div>
+            </div>
+            <div id="contactStatus" class="statusline"></div>
+            <div id="contactResults" class="list"></div>
+          </div></section>
+          <section class="span-12"><h2>账号</h2><div id="accountList" class="body"></div></section>
+        </div>
+      </div>
+
+      <div id="messages" class="tab">
+        <div class="grid">
+          <section class="span-4"><h2>查询</h2><div class="body">
+            <div class="row">
+              <div class="field full">
+                <label for="msgContact">联系人 username 或显示名</label>
+                <input id="msgContact" autocomplete="off">
+              </div>
+              <div class="field full">
+                <label for="msgKeyword">文本包含</label>
+                <input id="msgKeyword" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="msgLimit">数量</label>
+                <input id="msgLimit" type="number" min="1" max="200" value="20">
+              </div>
+              <div class="field wide actions">
+                <button id="queryMessages" class="primary">查询文本</button>
+                <button id="queryMedia">检查媒体</button>
+              </div>
+            </div>
+            <div id="messageStatus" class="statusline"></div>
+          </div></section>
+          <section class="span-8"><h2>结果</h2><div class="body"><div id="messageResults" class="list"></div></div></section>
+        </div>
+      </div>
+
+      <div id="rpa" class="tab">
+        <div class="grid">
+          <section class="span-5"><h2>发送文本</h2><div class="body">
+            <div class="row">
+              <div class="field full">
+                <label for="rpaTarget">目标显示名或 wxid</label>
+                <input id="rpaTarget" autocomplete="off">
+              </div>
+              <div class="field full">
+                <label for="rpaAt">@ 用户名</label>
+                <input id="rpaAt" autocomplete="off">
+              </div>
+              <div class="field full">
+                <label for="rpaContent">内容</label>
+                <textarea id="rpaContent"></textarea>
+              </div>
+              <div class="field full actions">
+                <button id="sendText" class="primary">发送</button>
+              </div>
+            </div>
+            <div id="rpaStatus" class="statusline"></div>
+          </div></section>
+          <section class="span-7"><h2>文件与拍一拍</h2><div class="body">
+            <div class="row">
+              <div class="field">
+                <label for="fileTarget">目标</label>
+                <input id="fileTarget" autocomplete="off">
+              </div>
+              <div class="field wide">
+                <label for="filePath">容器内文件路径</label>
+                <input id="filePath" autocomplete="off" placeholder="/config/...">
+              </div>
+              <div class="field full actions">
+                <button id="sendFile" class="primary">发送文件</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="patRoom">群聊，可空</label>
+                <input id="patRoom" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="patUser">用户</label>
+                <input id="patUser" autocomplete="off">
+              </div>
+              <div class="field actions">
+                <button id="sendPat">拍一拍</button>
+              </div>
+            </div>
+            <div id="rpaActionStatus" class="statusline"></div>
+          </div></section>
+          <section class="span-6"><h2>群管理</h2><div class="body">
+            <div class="row">
+              <div class="field full">
+                <label for="roomTarget">群聊</label>
+                <input id="roomTarget" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="roomMember">成员 / 联系人</label>
+                <input id="roomMember" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="roomNewName">新群名</label>
+                <input id="roomNewName" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="roomNickName">我的群昵称</label>
+                <input id="roomNickName" autocomplete="off">
+              </div>
+              <div class="field full actions">
+                <button id="inviteRoomMember">邀请成员</button>
+                <button id="removeRoomMember" class="danger">移除成员</button>
+                <button id="renameRoom">改群名</button>
+                <button id="renameRoomNick">改我的群昵称</button>
+                <button id="leaveRoom" class="danger">退群</button>
+              </div>
+            </div>
+            <div id="roomActionStatus" class="statusline"></div>
+          </div></section>
+          <section class="span-6"><h2>RPA 状态</h2><div id="rpaState" class="body"></div></section>
+        </div>
+      </div>
+
+      <div id="window" class="tab">
+        <div class="grid">
+          <section class="span-5"><h2>窗口</h2><div id="windowState" class="body"></div></section>
+          <section class="span-7"><h2>布局</h2><div class="body"><img id="layout" class="layout-img" src="/dashboard/layout.png" alt="layout"></div></section>
+          <section class="span-12"><h2>YOLO</h2><div id="vision" class="body"></div></section>
+        </div>
+      </div>
+
+      <div id="logs" class="tab">
+        <div class="grid">
+          <section class="span-12"><h2>Bot 日志</h2><div class="body">
+            <div class="actions" style="margin-bottom: 10px;">
+              <button id="loadLogs" class="primary">重新加载日志</button>
+              <select id="logLines" style="width: 120px;">
+                <option value="120">120</option>
+                <option value="240" selected>240</option>
+                <option value="500">500</option>
+              </select>
+              <span id="logPath" class="muted mono"></span>
+            </div>
+            <pre id="logText" class="log mono"></pre>
+          </div></section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const BASE_PATH = '/dashboard';
+    const apiPath = (path) => `${BASE_PATH}${path}`;
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const short = (v, n = 160) => {
+      const text = String(v ?? "");
+      return text.length > n ? `${text.slice(0, n - 1)}...` : text;
+    };
+    const pill = (ok, text) => `<span class="pill ${ok ? 'ok' : 'bad'}">${esc(text)}</span>`;
+    const warn = (text) => `<span class="pill warn">${esc(text)}</span>`;
+    const info = (text) => `<span class="pill info">${esc(text)}</span>`;
+    const bool = (v) => pill(Boolean(v), v ? "是" : "否");
+    const mono = (v) => `<span class="mono">${esc(v)}</span>`;
+    const table = (rows) => `<table class="kv"><tbody>${rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`).join("")}</tbody></table>`;
+    const json = (v) => `<span class="mono">${esc(JSON.stringify(v, null, 2))}</span>`;
+    let statusData = null;
+    let currentChat = null;
+    let currentChats = [];
+    let wechatMode = 'recent';
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        $(btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'wechat') loadWechatList().catch(err => $('wechatListStatus').textContent = err.message);
+        if (btn.dataset.tab === 'logs') loadLogs().catch(showHeaderError);
+      });
+    });
+
+    async function fetchJson(url, options = {}) {
+      const method = String(options.method || 'GET').toUpperCase();
+      const headers = new Headers(options.headers || {});
+      if (method !== 'GET' && method !== 'HEAD') {
+        headers.set('X-WeChat-AI-Dashboard', '1');
+      }
+      const res = await fetch(url, { cache: 'no-store', ...options, headers });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || `${res.status} ${res.statusText}`);
+      }
+      return data;
+    }
+
+    function showHeaderError(err) {
+      $('stamp').textContent = err.message || String(err);
+    }
+
+    function renderStatus(data) {
+      statusData = data;
+      $('stamp').textContent = `更新于 ${new Date(data.generated_at * 1000).toLocaleString()}`;
+      $('runtime').innerHTML = table([
+        ['pid', esc(data.runtime.pid)],
+        ['运行时长', esc(`${data.runtime.uptime_seconds}s`)],
+        ['python', esc(data.runtime.python)],
+        ['platform', esc(data.runtime.platform)]
+      ]);
+      $('bot').innerHTML = table([
+        ['运行中', bool(data.bot.running)],
+        ['聊天窗口就绪', bool(data.bot.chat_window_ready)],
+        ['账号', esc(data.bot.user.account || '')],
+        ['昵称', esc(data.bot.user.nickname || '')],
+        ['版本', esc(data.bot.user.version || '')]
+      ]);
+      $('queues').innerHTML = table([
+        ['消息', esc(data.queues.message_queue.size)],
+        ['rpa', esc(data.queues.rpa_task_queue.size)],
+        ['状态', esc(data.queues.status_queue.size)]
+      ]);
+      $('inputServices').innerHTML = table([
+        ['数据库监听', serviceBadge(data.services.message)],
+        ['已暂停', bool(data.services.message.is_paused)],
+        ['视觉监听', serviceBadge(data.services.visual)],
+        ['MQTT', data.services.mqtt.enabled ? bool(data.services.mqtt.connected) : warn('未启用')]
+      ]);
+      $('services').innerHTML = table([
+        ['处理器', serviceBadge(data.services.processor)],
+        ['处理器队列', esc(data.services.processor.queue_size ?? '')],
+        ['rpa', serviceBadge(data.services.rpa)],
+        ['RPA 队列', esc(data.services.rpa.queue_size ?? '')],
+        ['数据库轮询间隔', esc(data.services.message.poll_interval ?? '')],
+        ['视觉轮询间隔', esc(data.services.visual.poll_interval ?? '')]
+      ]);
+      $('processes').innerHTML = table([
+        ['微信', bool(data.processes.wechat.running)],
+        ['微信 PID', esc((data.processes.wechat.pids || []).join(', '))],
+        ['bot', bool(data.processes.bot.running)],
+        ['显示器', data.processes.display.ok ? info(data.processes.display.stdout) : warn(data.processes.display.stderr || '未知')]
+      ]);
+      $('plugins').innerHTML = `<div class="list">${(data.plugins || []).map(p => `<div class="item"><div class="item-head"><span class="title">${esc(p.name)}</span><span class="pill">${esc(p.priority)}</span></div><div class="sub mono">${esc(p.class)}</div></div>`).join("") || '<span class="muted">无</span>'}</div>`;
+      renderDatabase(data);
+      renderWindow(data);
+      $('rpaState').innerHTML = table([
+        ['运行中', serviceBadge(data.services.rpa)],
+        ['队列长度', esc(data.services.rpa.queue_size ?? '')],
+        ['窗口就绪', bool(data.bot.chat_window_ready)],
+        ['当前会话', esc(data.window.current_session || '')]
+      ]);
+      $('layout').src = `${apiPath('/layout.png')}?t=${Date.now()}`;
+    }
+
+    function serviceBadge(service) {
+      if (!service || Object.keys(service).length === 0) return warn('缺失');
+      const running = service.is_running ?? service.running;
+      return bool(running);
+    }
+
+    function renderDatabase(data) {
+      const db = data.database || {};
+      const media = data.media || {};
+      const discovery = db.discovery || db;
+      const available = db.available || db.can_attempt_business_database_open;
+      const rows = [
+        ['可用', bool(available)],
+        ['驱动', esc(db.driver || db.sqlcipher_driver || '')],
+        ['主账号', esc(db.primary_account || '')],
+        ['根目录', esc(db.root || discovery.root || '')],
+        ['账号数', esc(db.account_count || discovery.account_count || 0)],
+        ['数据库文件', esc(db.db_count ?? '')],
+        ['密钥', esc(db.key_count ?? db.key_scan?.found_key_count ?? '')],
+        ['消息表', esc(db.message_tables ?? '')],
+        ['联系人', esc(db.contacts ?? '')],
+        ['群聊', esc(db.rooms ?? '')],
+        ['图片 DAT Key', media.dat_key_configured ? info('已配置') : warn('未配置')],
+        ['图片密钥保存', media.dat_key_persisted ? info('已保存') : warn('未保存')],
+        ['图片 XOR Key', esc(media.dat_xor_key ?? '')],
+        ['连接数', esc(db.open_connections ?? '')],
+        ['失效连接恢复', esc(db.connection_replacements ?? '')],
+        ['孤立 WAL 快照', esc(db.orphan_wal_snapshots ?? '')],
+        ['连续轮询错误', esc(db.consecutive_poll_errors ?? '')],
+        ['上次自动恢复', esc(db.last_auto_refresh_at ? new Date(db.last_auto_refresh_at * 1000).toLocaleString() : '')],
+        ['上次扫描', esc(db.last_scan_at ? new Date(db.last_scan_at * 1000).toLocaleString() : '')],
+        ['最近错误', esc(db.last_error || db.error || '')]
+      ];
+      $('databaseOverview').innerHTML = table(rows.slice(0, 10));
+      $('databaseDetail').innerHTML = table(rows);
+      const accounts = discovery.accounts || [];
+      $('accountList').innerHTML = `<div class="list">${accounts.map(a => `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="title">${esc(a.account)}</div>
+              <div class="sub mono">${esc(a.storage_suffix || '')}</div>
+            </div>
+            ${a.login_key_db || a.login_key_dat ? info('登录密钥') : warn('无登录密钥')}
+          </div>
+          <div class="sub">${esc(a.encrypted_databases)} 个加密库 / ${esc(a.plaintext_databases)} 个明文库</div>
+          <div class="sub mono">${esc((a.samples || []).join(', '))}</div>
+        </div>`).join("") || '<span class="muted">无账号</span>'}</div>`;
+    }
+
+    function renderWindow(data) {
+      $('windowState').innerHTML = table([
+        ['当前窗口', bool(data.window.current_window)],
+        ['状态', esc(data.window.state || '')],
+        ['已对齐', bool(data.window.aligned)],
+        ['窗口 ID', esc(data.window.window_id || '')],
+        ['目标尺寸', json(data.window.target_size || {})],
+        ['实际几何', json(data.window.actual_geometry || {})],
+        ['消息区域', json(data.window.message_region || [])],
+        ['会话列表宽度', esc(data.window.session_list_width || '')],
+        ['发送按钮', json(data.window.send_button || [])],
+        ['原始截图', data.debug.raw_screenshot_enabled ? info('已启用') : warn('未启用')]
+      ]);
+      $('vision').innerHTML = table([
+        ['模型已加载', bool(data.yolo.model_loaded)],
+        ['模型路径', esc(data.yolo.model_path || '')],
+        ['imgsz 配置', esc(data.yolo.imgsz_config || '')],
+        ['imgsz 实际值', json(data.yolo.imgsz_actual || '')],
+        ['stride', esc(data.yolo.stride || '')],
+        ['视觉服务', serviceBadge(data.services.visual)],
+        ['已预热', bool(data.services.visual.primed)],
+        ['当前会话', esc(data.services.visual.current_session || '')],
+        ['视觉去重数', esc(data.services.visual.seen_visual_hashes || 0)]
+      ]);
+    }
+
+    async function loadStatus() {
+      const data = await fetchJson(`${apiPath('/api/status')}?show_sensitive=1`);
+      renderStatus(data);
+    }
+
+    async function loadLogs() {
+      const lines = $('logLines').value || '240';
+      const data = await fetchJson(`${apiPath('/api/logs')}?lines=${encodeURIComponent(lines)}`);
+      $('logPath').textContent = data.path || '';
+      $('logText').textContent = data.text || '';
+    }
+
+    async function rescanDb() {
+      $('stamp').textContent = '正在重扫数据库...';
+      await fetchJson(apiPath('/api/database/rescan'), { method: 'POST' });
+      await loadStatus();
+    }
+
+    async function resetWindow() {
+      $('stamp').textContent = '正在重置微信窗口尺寸...';
+      await fetchJson(apiPath('/api/window/reset'), { method: 'POST' });
+      await loadStatus();
+    }
+
+    async function discoverDatKeys() {
+      $('stamp').textContent = '正在发送探测图片并扫描图片密钥...';
+      const data = await fetchJson(apiPath('/api/media/discover-dat-keys'), {
+        method: 'POST',
+        body: JSON.stringify({
+          send_probe: true,
+          target: '文件传输助手',
+          wait_seconds: 20,
+          scan_timeout_seconds: 120
+        })
+      });
+      const discovery = data.discovery || {};
+      const aes = discovery.aes_key_found ? 'AES 已找到' : 'AES 未找到';
+      const xor = discovery.xor_key === null || discovery.xor_key === undefined ? 'XOR 未找到' : `XOR=${discovery.xor_key}`;
+      $('stamp').textContent = `图片密钥发现完成：${aes}，${xor}`;
+      await loadStatus();
+    }
+
+    async function pauseMessages() {
+      await fetchJson(apiPath('/api/message/pause'), { method: 'POST' });
+      await loadStatus();
+    }
+
+    async function resumeMessages() {
+      await fetchJson(apiPath('/api/message/resume'), { method: 'POST' });
+      await loadStatus();
+    }
+
+    async function searchContacts() {
+      const q = $('contactQuery').value.trim();
+      if (!q) {
+        $('contactStatus').textContent = '请输入搜索关键词';
+        $('contactResults').innerHTML = '';
+        return;
+      }
+      $('contactStatus').textContent = '搜索中...';
+      const data = await fetchJson(`${apiPath('/api/contacts')}?q=${encodeURIComponent(q)}&limit=50`);
+      $('contactStatus').textContent = `${data.count} 条结果`;
+      $('contactResults').innerHTML = data.contacts.map(contactItem).join("") || '<span class="muted">没有匹配项</span>';
+    }
+
+    function contactItem(c) {
+      return `<div class="item">
+        <div class="item-head">
+          <div>
+            <div class="title">${esc(c.display_name)}</div>
+            <div class="sub mono">${esc(c.username)}</div>
+          </div>
+          ${c.is_chatroom ? info('群聊') : info('联系人')}
+        </div>
+        <div class="sub">${esc([c.remark, c.nick_name, c.alias].filter(Boolean).join(' / '))}</div>
+        <div class="actions" style="margin-top:8px;">
+          <button data-fill-msg="${esc(c.username)}">用于消息查询</button>
+          <button data-fill-rpa="${esc(c.display_name)}">用于 RPA</button>
+          <button data-open-chat="${esc(c.username)}">打开会话</button>
+        </div>
+      </div>`;
+    }
+
+    document.addEventListener('click', (event) => {
+      const msgTarget = event.target.getAttribute?.('data-fill-msg');
+      const rpaTarget = event.target.getAttribute?.('data-fill-rpa');
+      const openChat = event.target.getAttribute?.('data-open-chat');
+      const chatIndex = event.target.closest?.('.chat-item')?.getAttribute('data-chat-index');
+      if (msgTarget) $('msgContact').value = msgTarget;
+      if (rpaTarget) fillRpaTargets(rpaTarget);
+      if (openChat) openChatByUsername(openChat).catch(err => $('wechatListStatus').textContent = err.message);
+      if (chatIndex !== null && chatIndex !== undefined) {
+        const chat = currentChats[Number(chatIndex)];
+        if (chat) selectChat(chat.contact).catch(err => $('wechatListStatus').textContent = err.message);
+      }
+    });
+
+    function fillRpaTargets(target) {
+      $('rpaTarget').value = target;
+      $('fileTarget').value = target;
+      $('patRoom').value = target;
+      $('roomTarget').value = target;
+    }
+
+    async function loadChats() {
+      updateWechatModeButtons();
+      $('wechatListStatus').textContent = '加载会话中...';
+      const data = await fetchJson(`${apiPath('/api/chats')}?limit=120`);
+      currentChats = data.chats || [];
+      $('wechatListStatus').textContent = `${currentChats.length} 个最近会话`;
+      renderChatList(currentChats);
+      if (!currentChat && currentChats[0]) await selectChat(currentChats[0].contact);
+    }
+
+    async function loadWechatList() {
+      if (wechatMode === 'recent') {
+        await loadChats();
+        return;
+      }
+      await loadWechatContacts(wechatMode === 'rooms' ? 'chatroom' : 'contact');
+    }
+
+    async function loadWechatContacts(contactType = 'any') {
+      updateWechatModeButtons();
+      $('wechatListStatus').textContent = contactType === 'chatroom' ? '加载群聊中...' : '加载通讯录中...';
+      const data = await fetchJson(`${apiPath('/api/contacts')}?q=&type=${encodeURIComponent(contactType)}&limit=500`);
+      currentChats = (data.contacts || []).map(contact => ({ contact, last_message: null }));
+      $('wechatListStatus').textContent = contactType === 'chatroom'
+        ? `${currentChats.length} 个群聊`
+        : `${currentChats.length} 个联系人`;
+      renderChatList(currentChats);
+      if (!currentChat && currentChats[0]) await selectChat(currentChats[0].contact);
+    }
+
+    async function setWechatMode(mode) {
+      wechatMode = mode;
+      $('wechatSearch').value = '';
+      await loadWechatList();
+    }
+
+    function updateWechatModeButtons() {
+      document.querySelectorAll('.wechat-mode').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.wechatMode === wechatMode);
+      });
+    }
+
+    async function searchWechatContacts() {
+      const q = $('wechatSearch').value.trim();
+      if (!q) {
+        await loadWechatList();
+        return;
+      }
+      $('wechatListStatus').textContent = '搜索中...';
+      const type = wechatMode === 'rooms' ? 'chatroom' : (wechatMode === 'contacts' ? 'contact' : 'any');
+      const data = await fetchJson(`${apiPath('/api/contacts')}?q=${encodeURIComponent(q)}&type=${encodeURIComponent(type)}&limit=100`);
+      currentChats = (data.contacts || []).map(contact => ({ contact, last_message: null }));
+      $('wechatListStatus').textContent = `${currentChats.length} 个联系人`;
+      renderChatList(currentChats);
+    }
+
+    function renderChatList(chats) {
+      $('wechatChatList').innerHTML = chats.map((chat, index) => chatListItem(chat, index)).join("") || '<div class="body muted">暂无会话</div>';
+    }
+
+    function chatListItem(chat, index) {
+      const c = chat.contact || {};
+      const m = chat.last_message || {};
+      const active = currentChat && currentChat.username === c.username ? ' active' : '';
+      const preview = m.text || m.raw_content || (m.type_name ? `[${m.type_name}]` : '');
+      return `<button class="chat-item${active}" data-chat-index="${index}">
+        ${avatarHtml(c, 'avatar')}
+        <div class="chat-main">
+          <div class="chat-topline">
+            <span class="chat-name">${esc(c.display_name || c.username || '')}</span>
+            <span class="chat-time">${esc(short(m.time || '', 16))}</span>
+          </div>
+          <div class="chat-preview">${esc(preview || c.username || '')}</div>
+        </div>
+      </button>`;
+    }
+
+    async function openChatByUsername(username) {
+      await selectChat({ username, display_name: username });
+    }
+
+    async function selectChat(contact) {
+      currentChat = contact;
+      $('wechatChatTitle').textContent = contact.display_name || contact.username || '会话';
+      $('wechatChatSub').textContent = contact.username || '';
+      $('wechatComposer').value = '';
+      $('wechatSendStatus').textContent = '';
+      renderChatList(currentChats);
+      await Promise.all([loadChatMessages(), loadContactDetail()]);
+    }
+
+    async function loadChatMessages(parseMedia = true) {
+      if (!currentChat) return;
+      $('wechatMessages').innerHTML = '<div class="muted">加载消息中...</div>';
+      const params = new URLSearchParams({
+        username: currentChat.username,
+        limit: '120',
+        parse_media: parseMedia ? 'true' : 'false'
+      });
+      const data = await fetchJson(`${apiPath('/api/messages/recent')}?${params.toString()}`);
+      currentChat = data.contact || currentChat;
+      $('wechatChatTitle').textContent = currentChat.display_name || currentChat.username || '会话';
+      $('wechatChatSub').textContent = `${currentChat.username || ''} · ${data.count} 条`;
+      $('wechatMessages').innerHTML = (data.messages || []).map(chatMessageBubble).join("") || '<div class="muted">暂无消息</div>';
+      $('wechatMessages').scrollTop = $('wechatMessages').scrollHeight;
+    }
+
+    async function loadContactDetail() {
+      if (!currentChat) return;
+      const params = new URLSearchParams({ username: currentChat.username });
+      const data = await fetchJson(`${apiPath('/api/contact/detail')}?${params.toString()}`);
+      renderContactDetail(data);
+    }
+
+    function renderContactDetail(data) {
+      const c = data.contact || {};
+      const members = data.members || [];
+      const actions = `<div class="actions" style="margin-top:10px;">
+        <button data-fill-rpa="${esc(c.display_name || c.username)}">填入 RPA</button>
+        <button data-fill-msg="${esc(c.username)}">填入消息查询</button>
+      </div>`;
+      const memberHtml = members.length
+        ? `<div class="detail-block"><div class="sub" style="margin-bottom:8px;">群成员 ${members.length}</div><div class="member-grid">${members.map(member => `<div class="member-chip">${avatarHtml(member, 'avatar')}<div style="margin-top:6px;">${esc(member.display_name || member.username)}</div><div class="sub mono">${esc(short(member.username, 36))}</div></div>`).join("")}</div></div>`
+        : '';
+      $('wechatDetail').innerHTML = `
+        <div class="detail-block">
+          <div class="profile-head">
+            ${avatarHtml(c, 'profile-avatar')}
+            <div>
+              <div class="title">${esc(c.display_name || c.username || '')}</div>
+              <div class="sub mono">${esc(c.username || '')}</div>
+              <div style="margin-top:6px;">${c.is_chatroom ? info('群聊') : info('联系人')}</div>
+            </div>
+          </div>
+          ${actions}
+        </div>
+        <div class="detail-block">${table([
+          ['备注', esc(c.remark || '')],
+          ['昵称', esc(c.nick_name || '')],
+          ['Alias', esc(c.alias || '')],
+          ['Room Remark', esc(c.room_remark || '')],
+          ['描述', esc(c.description || '')],
+          ['头像 URL', esc(c.avatar_url || '')],
+          ['头像 MD5', esc(c.head_img_md5 || '')],
+          ['有消息表', bool(data.has_message_table)],
+          ['群成员数', esc(data.member_count ?? '')],
+          ['delete_flag', esc(c.delete_flag ?? '')],
+          ['verify_flag', esc(c.verify_flag ?? '')],
+          ['chat_room_notify', esc(c.chat_room_notify ?? '')],
+        ])}</div>
+        ${memberHtml}`;
+    }
+
+    function chatMessageBubble(m) {
+      const out = m.direction === 'out';
+      const display = m.sender_display || m.sender_username || (out ? '我' : '');
+      const mediaRows = ['path', 'thumb_path', 'cover_path', 'file_name', 'file_size_label', 'file_type', 'md5', 'duration']
+        .filter(k => m[k] !== undefined && m[k] !== null && m[k] !== '')
+        .map(k => `<div>${esc(k)}: <span class="mono">${esc(m[k])}</span></div>`).join("");
+      const avatar = out ? '' : avatarHtml(m.sender || { display_name: display, avatar_url: m.sender_avatar_url }, 'bubble-avatar');
+      return `<div class="bubble-row ${out ? 'out' : 'in'}">
+        ${avatar}
+        <div class="bubble-wrap">
+          <div class="bubble-meta">${esc(display)} · ${esc(m.time || '')} · ${esc(m.type_name || '')}</div>
+          <div class="bubble">
+            ${messageBodyHtml(m)}
+            ${mediaRows ? `<div class="bubble-extra">${mediaRows}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function avatarHtml(contact, className = 'avatar') {
+      const name = contact?.display_name || contact?.remark || contact?.nick_name || contact?.username || '?';
+      const initials = String(name).slice(0, 2);
+      const url = contact?.avatar_url || contact?.small_head_url || contact?.big_head_url || '';
+      return `<div class="${className}">${url ? `<img src="${esc(url)}" alt="">` : esc(initials)}</div>`;
+    }
+
+    function messageBodyHtml(m) {
+      const type = Number(m.type);
+      const typeName = m.type_name || '';
+      const text = m.text || m.raw_content || `[${typeName || type || '消息'}]`;
+      if (typeName.includes('音视频通话')) {
+        return callMessageHtml(m, text);
+      }
+      if (typeName.includes('分享链接') || typeName.includes('小程序') || typeName.includes('音乐') || typeName.includes('视频号')) {
+        return linkMessageHtml(m, text);
+      }
+      if (type === 3 || typeName.includes('图片') || typeName.includes('表情')) {
+        return imageMessageHtml(m, text);
+      }
+      if (type === 43 || typeName.includes('视频')) {
+        return videoMessageHtml(m, text);
+      }
+      if (type === 25769803825 || type === 317827579953 || typeName.includes('文件')) {
+        return fileMessageHtml(m, text);
+      }
+      if (typeName.includes('名片')) {
+        return contactMessageHtml(m, text);
+      }
+      if (typeName.includes('位置')) {
+        return locationMessageHtml(m, text);
+      }
+      if (typeName.includes('转账') || typeName.includes('红包')) {
+        return payMessageHtml(m, text);
+      }
+      if (typeName.includes('语音')) {
+        return audioMessageHtml(m, text);
+      }
+      return `<div>${esc(text)}</div>`;
+    }
+
+    function imageMessageHtml(m, fallbackText) {
+      const src = m.media_url || m.path_url || m.thumb_path_url || m.thumb_url || m.url || '';
+      const title = m.type_name || '图片';
+      const tier = {original: '原图', standard: '普通图（原图不可用）', thumbnail: '缩略图（大图不可用）', file: '图片文件'}[m.media_tier] || '';
+      const dimensions = m.media_width && m.media_height ? `${m.media_width} × ${m.media_height}` : '';
+      const preview = m.media_conversion === 'wxgf_first_frame_png' ? '首帧预览' : '';
+      const detail = [tier, dimensions, preview].filter(Boolean).join(' · ');
+      if (m.media_status === 'unavailable' || m.media_status === 'too_large') {
+        return `<div class="media-sub">图片暂不可预览，请查看媒体诊断或在微信中下载原图。</div>`;
+      }
+      if (!src) return `<div>${esc(fallbackText)}</div>`;
+      return `<a href="${esc(src)}" target="_blank" rel="noreferrer">
+        <img class="media-image" src="${esc(src)}" alt="${esc(title)}">
+      </a>${detail ? `<div class="media-sub">${esc(detail)}</div>` : ''}`;
+    }
+
+    function videoMessageHtml(m, fallbackText) {
+      const src = m.path_url || m.media_url || '';
+      const poster = m.thumb_path_url || m.cover_path_url || m.cover_url || '';
+      if (src) {
+        return `<video class="media-video" controls preload="metadata" ${poster ? `poster="${esc(poster)}"` : ''} src="${esc(src)}"></video>
+          ${m.duration ? `<div class="media-sub">时长 ${esc(m.duration)} 秒</div>` : ''}`;
+      }
+      if (poster) {
+        return `<a href="${esc(poster)}" target="_blank" rel="noreferrer"><img class="media-image" src="${esc(poster)}" alt="视频封面"></a>
+          <div class="media-sub">${esc(fallbackText)}</div>`;
+      }
+      return `<div>${esc(fallbackText)}</div>`;
+    }
+
+    function fileMessageHtml(m, fallbackText) {
+      const href = m.path_url || m.media_url || '';
+      const name = m.file_name || fallbackText || '文件';
+      const size = m.file_size_label || m.file_size || '';
+      const inner = `<span class="file-icon">${esc(fileExt(name))}</span><span>
+        <span class="media-title">${esc(name)}</span>
+        <span class="media-sub">${esc([size, m.file_type].filter(Boolean).join(' · '))}</span>
+      </span>`;
+      return href
+        ? `<a class="file-card" href="${esc(`${href}${href.includes('?') ? '&' : '?'}download=1`)}">${inner}</a>`
+        : `<div class="file-card">${inner}</div>`;
+    }
+
+    function linkMessageHtml(m, fallbackText) {
+      const href = m.url || m.media_url || '#';
+      const cover = m.cover_path_url || m.cover_url || m.thumb_url || m.publisher_avatar || m.app_logo || '';
+      const title = m.title || m.description || fallbackText;
+      const descParts = [m.app_name, m.publisher_nickname, m.description].filter(Boolean);
+      if (m.duration) descParts.push(`${m.duration} 秒`);
+      if (m.width && m.height) descParts.push(`${m.width} x ${m.height}`);
+      const desc = descParts.join(' · ');
+      const coverHtml = cover ? `<img src="${esc(cover)}" alt="">` : '链';
+      return `<a class="link-card" href="${esc(href)}" target="_blank" rel="noreferrer">
+        <span class="link-cover">${coverHtml}</span><span>
+          <span class="media-title">${esc(title)}</span>
+          <span class="media-sub">${esc(desc)}</span>
+        </span>
+      </a>`;
+    }
+
+    function contactMessageHtml(m, fallbackText) {
+      const name = m.nickname || m.title || fallbackText;
+      const cover = m.small_head_url || m.big_head_url || '';
+      const desc = [m.alias, m.open_im_desc, m.sign, [m.province, m.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+      return `<div class="contact-card">
+        <span class="contact-cover">${cover ? `<img src="${esc(cover)}" alt="">` : esc(String(name || '?').slice(0, 1))}</span>
+        <span>
+          <span class="media-title">${esc(name)}</span>
+          <span class="media-sub">${esc(desc)}</span>
+        </span>
+      </div>`;
+    }
+
+    function locationMessageHtml(m, fallbackText) {
+      const title = m.poiname || m.label || '位置';
+      const sub = [m.label, m.x && m.y ? `${m.x}, ${m.y}` : ''].filter(Boolean).join(' · ');
+      return `<div class="mini-map">
+        <span class="mini-map-pin">位</span>
+        <span class="media-title">${esc(title)}</span>
+        <span class="media-sub">${esc(sub || fallbackText)}</span>
+      </div>`;
+    }
+
+    function audioMessageHtml(m, fallbackText) {
+      const text = m.voice_to_text || fallbackText;
+      return `<div>${esc(text)}</div>${m.duration ? `<div class="media-sub">时长 ${esc(m.duration)} 秒</div>` : ''}`;
+    }
+
+    function callMessageHtml(m, fallbackText) {
+      const title = m.display_content || fallbackText;
+      const kind = m.invite_type === 0 ? '视频通话' : '语音通话';
+      return `<div class="file-card">
+        <span class="file-icon">通</span><span>
+          <span class="media-title">${esc(title)}</span>
+          <span class="media-sub">${esc([kind, m.duration ? `${m.duration} 秒` : ''].filter(Boolean).join(' · '))}</span>
+        </span>
+      </div>`;
+    }
+
+    function payMessageHtml(m, fallbackText) {
+      const title = m.fee_desc || m.pay_memo || fallbackText;
+      const sub = [m.pay_memo, m.receiver_username, m.pay_subtype ? `subtype ${m.pay_subtype}` : ''].filter(Boolean).join(' · ');
+      return `<div class="file-card">
+        <span class="file-icon">¥</span><span>
+          <span class="media-title">${esc(title)}</span>
+          <span class="media-sub">${esc(sub)}</span>
+        </span>
+      </div>`;
+    }
+
+    function fileExt(name) {
+      const part = String(name || '').split('.').pop();
+      return part && part.length <= 5 && part !== name ? part.toUpperCase() : 'FILE';
+    }
+
+    async function queryMessages(media = false) {
+      const contact = $('msgContact').value.trim();
+      if (!contact) {
+        $('messageStatus').textContent = '联系人不能为空';
+        return;
+      }
+      const limit = $('msgLimit').value || '20';
+      const keyword = $('msgKeyword').value.trim();
+      const params = new URLSearchParams({ contact, limit });
+      if (!media && keyword) params.set('query', keyword);
+      $('messageStatus').textContent = media ? '正在检查媒体...' : '查询中...';
+      const endpoint = apiPath(media ? '/api/messages/media' : '/api/messages');
+      const data = await fetchJson(`${endpoint}?${params.toString()}`);
+      $('messageStatus').textContent = `${data.contact.display_name} 返回 ${data.count} 条结果`;
+      $('messageResults').innerHTML = data.messages.map(media ? mediaMessageItem : textMessageItem).join("") || '<span class="muted">没有消息</span>';
+    }
+
+    function textMessageItem(m) {
+      return `<div class="item">
+        <div class="item-head">
+          <div>
+            <div class="title">${esc(m.sender_display || m.sender_username || '未知')}</div>
+            <div class="sub mono">${esc(m.time)} server=${esc(m.server_id)}</div>
+          </div>
+        </div>
+        <div class="message-text">${esc(m.text)}</div>
+      </div>`;
+    }
+
+    function mediaMessageItem(m) {
+      const status = m.factory_ok ? info('已解析') : warn('原始');
+      const labels = {
+        path: '路径',
+        thumb_path: '缩略图',
+        cover_path: '封面',
+        file_name: '文件名',
+        file_size: '文件大小',
+        file_type: '文件类型',
+        md5: 'MD5',
+        duration: '时长'
+      };
+      const media = ['path', 'thumb_path', 'cover_path', 'file_name', 'file_size_label', 'file_type', 'md5', 'duration']
+        .filter(k => m[k] !== undefined && m[k] !== null && m[k] !== '')
+        .map(k => `<tr><th>${esc(labels[k] || k)}</th><td>${esc(m[k])}</td></tr>`).join("");
+      return `<div class="item">
+        <div class="item-head">
+          <div>
+            <div class="title">${esc(m.type_name)} ${esc(m.time || '')}</div>
+            <div class="sub mono">local=${esc(m.local_id)} server=${esc(m.server_id)}</div>
+          </div>
+          ${status}
+        </div>
+        <div class="message-text">${messageBodyHtml(m)}</div>
+        ${media ? `<table class="kv" style="margin-top:8px;"><tbody>${media}</tbody></table>` : ''}
+      </div>`;
+    }
+
+    async function sendText() {
+      const target = $('rpaTarget').value.trim();
+      const atUserName = $('rpaAt').value.trim();
+      const content = $('rpaContent').value;
+      $('rpaStatus').textContent = '执行中...';
+      const data = await fetchJson(apiPath('/api/rpa/send_text'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, content, at_user_name: atUserName, wait_seconds: 12 })
+      });
+      $('rpaStatus').textContent = data.completed
+        ? `${data.target} 已执行完成`
+        : `${data.target} 已入队，当前队列 ${data.queue_size}`;
+      await loadStatus();
+    }
+
+    async function sendWechatText() {
+      if (!currentChat) {
+        $('wechatSendStatus').textContent = '请先选择会话';
+        return;
+      }
+      const content = $('wechatComposer').value;
+      const atUserName = $('wechatAtUser').value.trim();
+      if (!content.trim()) {
+        $('wechatSendStatus').textContent = '消息不能为空';
+        return;
+      }
+      $('wechatSendStatus').textContent = '发送中...';
+      const data = await fetchJson(apiPath('/api/rpa/send_text'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: currentChat.display_name || currentChat.username,
+          content,
+          at_user_name: atUserName,
+          wait_seconds: 12
+        })
+      });
+      $('wechatSendStatus').textContent = data.completed ? '已发送' : `已入队，队列 ${data.queue_size}`;
+      $('wechatComposer').value = '';
+      await loadChatMessages(true);
+      await loadWechatList();
+    }
+
+    async function dispatchRpaAction(actionType, actionData, statusEl) {
+      statusEl.textContent = '执行中...';
+      const data = await fetchJson(apiPath('/api/rpa/action'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type: actionType, action_data: actionData, wait_seconds: 35 })
+      });
+      statusEl.textContent = data.completed
+        ? `${actionType} 已执行完成`
+        : `${actionType} ${data.status || 'queued'}`;
+      await loadStatus();
+    }
+
+    function requireValue(id, label) {
+      const value = $(id).value.trim();
+      if (!value) throw new Error(`${label}不能为空`);
+      return value;
+    }
+
+    $('refresh').addEventListener('click', () => loadStatus().catch(showHeaderError));
+    $('resetWindow').addEventListener('click', () => resetWindow().catch(showHeaderError));
+    $('discoverDatKeys').addEventListener('click', () => discoverDatKeys().catch(showHeaderError));
+    $('rescanDb').addEventListener('click', () => rescanDb().catch(showHeaderError));
+    $('pauseMessages').addEventListener('click', () => pauseMessages().catch(showHeaderError));
+    $('resumeMessages').addEventListener('click', () => resumeMessages().catch(showHeaderError));
+    $('searchContacts').addEventListener('click', () => searchContacts().catch(err => $('contactStatus').textContent = err.message));
+    $('contactQuery').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') searchContacts().catch(err => $('contactStatus').textContent = err.message);
+    });
+    $('wechatSearchBtn').addEventListener('click', () => searchWechatContacts().catch(err => $('wechatListStatus').textContent = err.message));
+    $('wechatSearch').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') searchWechatContacts().catch(err => $('wechatListStatus').textContent = err.message);
+    });
+    document.querySelectorAll('.wechat-mode').forEach(btn => {
+      btn.addEventListener('click', () => setWechatMode(btn.dataset.wechatMode).catch(err => $('wechatListStatus').textContent = err.message));
+    });
+    $('wechatReloadChat').addEventListener('click', () => loadChatMessages(true).catch(err => $('wechatSendStatus').textContent = err.message));
+    $('wechatLoadMedia').addEventListener('click', () => loadChatMessages(true).catch(err => $('wechatSendStatus').textContent = err.message));
+    $('wechatSendText').addEventListener('click', () => sendWechatText().catch(err => $('wechatSendStatus').textContent = err.message));
+    $('queryMessages').addEventListener('click', () => queryMessages(false).catch(err => $('messageStatus').textContent = err.message));
+    $('queryMedia').addEventListener('click', () => queryMessages(true).catch(err => $('messageStatus').textContent = err.message));
+    $('sendText').addEventListener('click', () => sendText().catch(err => $('rpaStatus').textContent = err.message));
+    $('sendFile').addEventListener('click', () => dispatchRpaAction('send_file', {
+      target: requireValue('fileTarget', '目标'),
+      file_path: requireValue('filePath', '文件路径'),
+      is_chatroom: $('fileTarget').value.includes('@chatroom')
+    }, $('rpaActionStatus')).catch(err => $('rpaActionStatus').textContent = err.message));
+    $('sendPat').addEventListener('click', () => dispatchRpaAction('pat', {
+      target: $('patRoom').value.trim() || requireValue('patUser', '用户'),
+      user_name: requireValue('patUser', '用户'),
+      is_chatroom: Boolean($('patRoom').value.trim())
+    }, $('rpaActionStatus')).catch(err => $('rpaActionStatus').textContent = err.message));
+    $('inviteRoomMember').addEventListener('click', () => dispatchRpaAction('invice_2_room', {
+      target: requireValue('roomTarget', '群聊'),
+      user_name: requireValue('roomMember', '成员')
+    }, $('roomActionStatus')).catch(err => $('roomActionStatus').textContent = err.message));
+    $('removeRoomMember').addEventListener('click', () => dispatchRpaAction('remove_room_member', {
+      target: requireValue('roomTarget', '群聊'),
+      user_name: requireValue('roomMember', '成员')
+    }, $('roomActionStatus')).catch(err => $('roomActionStatus').textContent = err.message));
+    $('renameRoom').addEventListener('click', () => dispatchRpaAction('rename_room_name', {
+      target: requireValue('roomTarget', '群聊'),
+      name: requireValue('roomNewName', '新群名')
+    }, $('roomActionStatus')).catch(err => $('roomActionStatus').textContent = err.message));
+    $('renameRoomNick').addEventListener('click', () => dispatchRpaAction('rename_name_in_room', {
+      target: requireValue('roomTarget', '群聊'),
+      name: requireValue('roomNickName', '我的群昵称')
+    }, $('roomActionStatus')).catch(err => $('roomActionStatus').textContent = err.message));
+    $('leaveRoom').addEventListener('click', () => dispatchRpaAction('leave_room', {
+      target: requireValue('roomTarget', '群聊')
+    }, $('roomActionStatus')).catch(err => $('roomActionStatus').textContent = err.message));
+    $('loadLogs').addEventListener('click', () => loadLogs().catch(showHeaderError));
+    $('logLines').addEventListener('change', () => loadLogs().catch(showHeaderError));
+
+    loadStatus().catch(showHeaderError);
+    loadWechatList().catch(() => {});
+    loadLogs().catch(() => {});
+    setInterval(loadStatus, 5000);
+  </script>
+</body>
+</html>

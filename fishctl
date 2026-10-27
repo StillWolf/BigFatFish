@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$project_root"
+fish_action="${1:-status}"
+shift || true
+if [[ "$fish_action" = --help || "$fish_action" = -h || "$fish_action" = help ]]; then
+  echo '用法：bash fishctl up|down|restart|status|logs|component-logs|configure|access|wechat|bili|release'
+  exit 0
+fi
+if [[ "$fish_action" = configure || "$fish_action" = config ]]; then exec python3 scripts/configure.py "$@"; fi
+if [[ "$fish_action" = release ]]; then exec python3 scripts/export-source.py "$@"; fi
+if [[ "$fish_action" = access ]]; then exec python3 scripts/access-info.py "$@"; fi
+engine=(docker)
+if ! docker info >/dev/null 2>&1; then
+  if command -v sudo >/dev/null && sudo docker info >/dev/null 2>&1; then engine=(sudo docker)
+  else echo 'Docker 未运行或当前用户无权访问；请启动 Docker 后重试' >&2; exit 1; fi
+fi
+compose=("${engine[@]}" compose --project-directory "$project_root" -f "$project_root/compose.yaml")
+case "$fish_action" in
+  up|install)
+    "${compose[@]}" config --quiet
+    "${compose[@]}" up -d --build --force-recreate "$@"
+    echo '服务已启动。请打开 NapCat 网页并扫码；首次下载模型可在后台继续。'
+    python3 scripts/access-info.py
+    ;;
+  down|stop) "${compose[@]}" down "$@" ;; # Preserve all bind-mounted user data.
+  restart) "${compose[@]}" restart "$@" ;;
+  status) "${compose[@]}" ps; "${compose[@]}" exec -T fish python scripts/show-status.py || true ;;
+  logs) "${compose[@]}" logs --tail 80 "$@" ;;
+  component-logs)
+    component="${1:-dsh}"
+    case "$component" in dsh|activities|diary|tts|bilibili|speech-model) ;; *) echo '未知组件' >&2; exit 2;; esac
+    "${compose[@]}" exec -T fish tail -n 80 -F "/opt/fish/data/logs/${component}.log"
+    ;;
+  wechat) "${compose[@]}" exec -T fish node scripts/wechat-admin.mjs "$@" ;;
+  bili) "${compose[@]}" exec -T fish python scripts/bilibili-admin.py "$@" ;;
+  *) echo '用法：bash fishctl up|down|restart|status|logs|configure|access|wechat|bili|release' >&2; exit 2 ;;
+esac

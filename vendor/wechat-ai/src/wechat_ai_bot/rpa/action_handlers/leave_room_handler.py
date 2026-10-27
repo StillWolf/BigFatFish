@@ -1,0 +1,65 @@
+import time
+from dataclasses import dataclass, field
+
+import wechat_ai_bot.utils.mouse as pyautogui
+from wechat_ai_bot.rpa.action_handlers.base_handler import (
+    BaseActionHandler,
+    RPAAction,
+    RPAActionType,
+)
+from wechat_ai_bot.rpa.action_handlers.mixins.group_operations_mixin import (
+    GroupOperationsMixin,
+)
+from wechat_ai_bot.rpa.action_handlers.mixins.window_operations_mixin import (
+    WindowOperationsMixin,
+)
+from wechat_ai_bot.utils.mouse import human_like_mouse_move
+
+
+@dataclass
+class LeaveRoomAction(RPAAction):
+    target: str = field(default=None)
+
+    def __post_init__(self):
+        self.action_type = RPAActionType.LEAVE_ROOM
+        self.is_send_message = False
+
+
+class LeaveRoomHandler(WindowOperationsMixin, GroupOperationsMixin, BaseActionHandler):
+    """
+    退群操作的处理器。
+    """
+
+    def execute(self, action: LeaveRoomAction) -> bool:
+        """
+        执行退群操作。
+        Args:
+            action (LeaveRoomAction): 操作对象。
+        Returns:
+            bool: 操作是否成功。
+        """
+        try:
+            if not self.window_manager.switch_session(action.target):
+                self._cleanup(close_sidebar=True)
+                return False
+            self.window_manager.open_close_sidebar()
+            region = self._get_room_side_bar_region()
+            human_like_mouse_move(
+                region[0] + region[2] // 2, region[1] + region[3] // 2
+            )
+            time.sleep(self.controller.window_manager.action_delay)
+            pyautogui.scroll(-1500)
+            leave_btn = self.ui_helper.find_and_click_text_element(
+                region=region,
+                text="退出群聊",
+            )
+            if leave_btn:
+                if not self._confirm_destructive_member_action(initial_region=None):
+                    self.logger.error("未找到确认窗口")
+                    return False
+            else:
+                self.logger.error("未找到退出群聊按钮")
+                return False
+            return True
+        finally:
+            self._cleanup(close_sidebar=True)
