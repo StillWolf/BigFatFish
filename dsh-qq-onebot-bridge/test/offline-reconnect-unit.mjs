@@ -193,6 +193,12 @@ try {
   check('在线主动聊天仍能运行', await waitFor(() => followups().some((text) => text.includes('在线主动'))))
   check('模拟回合未发送任何QQ消息', server.sent.length === 0)
 
+  const previousReminders = bridge.reminders.size
+  queueInjection({ kind: 'message', userId: 1001, groupId: 2002, atMe: true,
+    text: '到了水群时间，聊一聊。（现在北京时间 10-31 23:59）', proactive: true, dryRun: false })
+  check('含时间的主动提示进入模拟模型', await waitFor(() => followups().some((text) => text.includes('到了水群时间'))))
+  check('主动提示不会创建提醒或发送提醒回执', bridge.reminders.size === previousReminders && server.sent.length === 0)
+
   server.socket = null
   server.emit('bot-disconnect', activeSocket)
   check('断开连接及时标记离线', bridge.botOnline === false)

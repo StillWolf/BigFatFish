@@ -38,7 +38,7 @@ def main():
 <style>body{font:18px sans-serif;max-width:680px;margin:50px auto;padding:16px;color:#234;background:#f4f8fb}a{color:#1673b1}</style>
 <h1>小肥鱼的 B站浏览器</h1><p>游客可看公开可播放的视频。需要自己的推荐和账号功能时，可在浏览器里完成官方扫码登录。</p>
 <p><a href="vnc_lite.html?scale=1">打开 B站浏览器</a></p>
-<p>当前已接入浏览与视频片段理解。评论功能尚未接通。</p></html>''')
+<p>已接入浏览、视频片段理解和评论工具；公开评论默认关闭，可由部署者启用。</p></html>''')
     env = dict(os.environ, DISPLAY=':92', XDG_RUNTIME_DIR=str(root / 'xdg-runtime'),
                PLAYWRIGHT_BROWSERS_PATH=os.environ.get('PLAYWRIGHT_BROWSERS_PATH', str(root / 'browsers')), FISH_BILIBILI_ROOT=str(root),
                OMP_NUM_THREADS='4', OPENBLAS_NUM_THREADS='4', HF_HUB_DISABLE_TELEMETRY='1')

@@ -25,6 +25,9 @@ import aiohttp
 from aiohttp import web
 from PIL import Image, ImageDraw
 from playwright.async_api import async_playwright
+from bilibili_comments import Comments, enabled as comments_enabled
+from bilibili_profile import Profile
+from bilibili_social import Social
 
 TZ = ZoneInfo('Asia/Shanghai')
 PROJECT = Path(os.environ.get('FISH_PROJECT_ROOT', str(Path(__file__).resolve().parents[1])))
@@ -118,6 +121,9 @@ class Browser:
         self.asr = None
         self.asr_path = None
         self.ready = False
+        self.comments = Comments(self, ROOT, canonical_video)
+        self.profile = Profile(self, ROOT)
+        self.social = Social(self, ROOT, PROJECT)
         self.seen = set()
         try:
             with HISTORY.open('rb') as stream:
@@ -147,10 +153,14 @@ class Browser:
         except Exception:
             log('home_navigation_unavailable')
         self.ready = True
+        self.social_task = asyncio.create_task(self.social.poll())
         log('browser_ready')
 
     async def stop(self, _app):
         self.ready = False
+        if getattr(self, 'social_task', None):
+            self.social_task.cancel()
+            await asyncio.gather(self.social_task, return_exceptions=True)
         await self.context.close()
         await self.playwright.stop()
 
@@ -205,36 +215,83 @@ class Browser:
         except Exception:
             pass
         return {'ready': self.ready, 'loggedIn': authenticated, 'current': self.current,
-                'lastWatch': self.last, 'commentsAvailable': False}
+                'lastWatch': self.last, 'commentsAvailable': comments_enabled(ROOT), 'profileAvailable': self.profile.enabled(),
+                'socialAvailable': self.social.enabled(), 'socialMonitor': self.social.poll_state}
 
     async def listing(self, query='', limit=5):
         limit = max(1, min(6, int(limit)))
-        url = ('https://search.bilibili.com/all?keyword=' + quote(query[:100])) if query else 'https://www.bilibili.com/v/popular/all'
-        page = await self.page(url)
-        try:
-            await page.locator('a[href*="/video/BV"]').first.wait_for(timeout=20000)
-        except Exception:
-            raise ValueError('页面没有返回可用视频，可能需要登录或网站暂时限制访问')
-        rows = await page.locator('a[href*="/video/BV"]').evaluate_all('''links => links.map(a => {
+        if query:
+            urls = ['https://search.bilibili.com/all?keyword=' + quote(query[:100])]
+        else:
+            # 首页推荐（登录后才有）→ 热门页 → 排行榜；哪一处先凑够条目就用哪一处。
+            urls = ['https://www.bilibili.com/', 'https://www.bilibili.com/v/popular/all',
+                    'https://www.bilibili.com/v/popular/rank/all']
+        extract = '''links => links.map(a => {
           const card=a.closest('.bili-video-card,.video-card,.video-list-item,.bili-video-card__wrap') || a.parentElement;
           const heading=card?.querySelector('h3,[title]');
           return {url:a.href,title:a.getAttribute('title') || heading?.getAttribute('title') || heading?.innerText || a.innerText || card?.querySelector('img')?.alt || ''};
-        })''')
-        seen = set()
-        result = []
-        for row in rows:
+        })'''
+        result, seen, errors = [], set(), []
+        for url in urls:
             try:
-                bvid, video = canonical_video(row['url'])
-            except ValueError:
+                page = await self.page(url)
+                try:
+                    await page.locator('a[href*="/video/BV"]').first.wait_for(timeout=15000)
+                except Exception:
+                    errors.append(('search' if query else 'feed') + ':timeout')
+                    continue
+                try:
+                    await page.wait_for_timeout(900)
+                except Exception:
+                    pass
+                rows = await page.locator('a[href*="/video/BV"]').evaluate_all(extract)
+            except Exception as error:
+                errors.append(('search' if query else 'feed') + ':' + type(error).__name__)
                 continue
-            title = re.sub(r'\s+', ' ', row.get('title', '')).strip()[:90]
-            if bvid in seen or not title:
-                continue
-            seen.add(bvid)
-            result.append({'bvid': bvid, 'title': title, 'url': video,
-                           'previouslyWatched': bvid in self.seen})
-            if len(result) >= limit:
+            for row in rows:
+                try:
+                    bvid, video = canonical_video(row['url'])
+                except ValueError:
+                    continue
+                title = re.sub(r'\s+', ' ', row.get('title', '')).strip()[:90]
+                if bvid in seen or not title:
+                    continue
+                seen.add(bvid)
+                result.append({'bvid': bvid, 'title': title, 'url': video,
+                               'previouslyWatched': bvid in self.seen})
+                if len(result) >= limit:
+                    break
+            if len(result) >= min(limit, 3):
                 break
+        if not result and not query:
+            # 页面列表不可用时，尝试读取公开排行榜接口。
+            try:
+                page = await self.page('https://www.bilibili.com/')
+                rows = await page.evaluate('''async () => {
+                  const r = await fetch('https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all', {credentials:'include'});
+                  const j = await r.json();
+                  return ((j.data && j.data.list) || []).map(v => ({bvid: v.bvid, title: v.title}));
+                }''')
+                for row in rows:
+                    try:
+                        bvid, video_url = canonical_video(row.get('bvid'))
+                    except ValueError:
+                        continue
+                    title = re.sub(r'\s+', ' ', str(row.get('title') or '')).strip()[:90]
+                    if not title or bvid in seen:
+                        continue
+                    seen.add(bvid)
+                    result.append({'bvid': bvid, 'title': title,
+                                   'url': video_url,
+                                   'previouslyWatched': bvid in self.seen})
+                    if len(result) >= limit:
+                        break
+            except Exception as error:
+                errors.append('ranking-api:' + type(error).__name__)
+        if not result:
+            raise ValueError('页面没有返回可用视频，可能需要登录或网站暂时限制访问')
+        if errors:
+            log('listing_fallback', errors=','.join(errors[:4]))
         return {'videos': result}
 
     async def capture_response(self, response, sources):
@@ -588,7 +645,8 @@ def create_app():
                     async with asyncio.timeout(180):
                         return web.json_response(await browser.status(retry_audio=True))
             return web.json_response(await browser.status(args.get('diagnostics') is True, args.get('retryAudio') is True))
-        if name not in ('feed', 'search', 'watch'):
+        if name not in ('feed', 'search', 'watch', 'comments', 'comment', 'profile', 'profile-update', 'avatar-options', 'avatar-make', 'avatar-set',
+                        'creator', 'followings', 'followers', 'creator-videos', 'follow', 'sessions', 'dm-read', 'dm-send', 'search-users', 'replies'):
             return web.json_response({'error': 'unsupported action'}, status=404)
         if browser.lock.locked():
             return web.json_response({'error': '正在刷另一段视频，稍后再试'}, status=409)
@@ -596,6 +654,40 @@ def create_app():
             async with asyncio.timeout(270):
                 if name == 'watch':
                     result = await browser.watch(args.get('video'), args.get('seconds', 45), args.get('start', 0))
+                elif name == 'comments':
+                    result = await browser.comments.read(args.get('video'), args.get('limit', 5))
+                elif name == 'comment':
+                    result = await browser.comments.send(args.get('video'), args.get('text'), args.get('root'), args.get('parent'))
+                elif name == 'profile':
+                    result = await browser.profile.read()
+                elif name == 'profile-update':
+                    result = await browser.profile.update(args.get('field'), args.get('value'))
+                elif name == 'avatar-options':
+                    result = browser.profile.candidates()
+                elif name == 'avatar-make':
+                    result = browser.profile.make_avatar(args.get('colour'))
+                elif name == 'avatar-set':
+                    result = await browser.profile.set_avatar(args.get('name'))
+                elif name == 'creator':
+                    result = await browser.social.creator(args.get('video'))
+                elif name == 'followings':
+                    result = await browser.social.followings(args.get('limit', 10), args.get('page', 1))
+                elif name == 'replies':
+                    result = await browser.social.replies(args.get('limit', 6))
+                elif name == 'search-users':
+                    result = await browser.social.users(args.get('keyword'), args.get('limit', 5))
+                elif name == 'followers':
+                    result = await browser.social.followers(args.get('limit', 10), args.get('page', 1))
+                elif name == 'creator-videos':
+                    result = await browser.social.videos(args.get('uid'), args.get('limit', 5))
+                elif name == 'follow':
+                    result = await browser.social.follow(args.get('uid'))
+                elif name == 'sessions':
+                    result = await browser.social.list_sessions(args.get('limit', 5))
+                elif name == 'dm-read':
+                    result = await browser.social.messages(args.get('uid'), args.get('limit', 6))
+                elif name == 'dm-send':
+                    result = await browser.social.send(args.get('uid'), args.get('text'))
                 else:
                     result = await browser.listing(str(args.get('query', '')).strip() if name == 'search' else '', args.get('limit', 5))
                 return web.json_response(result)
