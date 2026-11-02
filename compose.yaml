@@ -16,6 +16,8 @@ services:
       - "127.0.0.1:${FISH_WEB_PORT:-3080}:3080"
       - "127.0.0.1:${NAPCAT_WEB_PORT:-6099}:6099"
       - "127.0.0.1:${BILIBILI_WEB_PORT:-6082}:6082"
+      - "127.0.0.1:${XIAOHONGSHU_WEB_PORT:-6083}:6083"
+      - "127.0.0.1:${FISH_STATUS_PORT:-18180}:18180"
     volumes:
       - ./data/app:/opt/fish/data
       - ./data/dsh:/state/dsh

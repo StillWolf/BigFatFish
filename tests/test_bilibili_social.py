@@ -1,5 +1,8 @@
 import json
 import os
+import hashlib
+import sqlite3
+from contextlib import closing
 import sys
 import tempfile
 import time
@@ -109,6 +112,63 @@ class SocialTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.social.enqueue_incoming('200','42'))
         rows=(folder/'qq-inject.jsonl').read_text().splitlines();self.assertEqual(len(rows),1)
         self.assertNotIn('你好',rows[0]);self.assertEqual(json.loads(rows[0])['label'],'B站私信')
+
+    async def test_failed_activity_retries_with_new_id_without_sending(self):
+        self.enable();folder=self.project/'data/qq-bridge';folder.mkdir(parents=True)
+        (folder/'qq-runtime.json').write_text(json.dumps({'pid':os.getpid(),'updatedAt':time.time()*1000}))
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        event=hashlib.sha256(b'200:42').hexdigest()[:24]
+        (folder/'activity-log.jsonl').write_text(json.dumps({'id':'bili-dm-'+event,'event':'completed','status':'failed'})+'\n')
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:db.execute('UPDATE events SET at=?',(time.time()-601,))
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        rows=[json.loads(x) for x in (folder/'qq-inject.jsonl').read_text().splitlines()]
+        self.assertEqual(rows[1]['id'],'bili-dm-'+event+'-r1')
+        self.assertEqual(self.api.sent,[])
+
+    async def test_uncertain_outbound_reply_prevents_activity_retry(self):
+        self.enable();folder=self.project/'data/qq-bridge';folder.mkdir(parents=True)
+        (folder/'qq-runtime.json').write_text(json.dumps({'pid':os.getpid(),'updatedAt':time.time()*1000}))
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        event=hashlib.sha256(b'200:42').hexdigest()[:24]
+        (folder/'activity-log.jsonl').write_text(json.dumps({'id':'bili-dm-'+event,'event':'completed','status':'failed'})+'\n')
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:db.execute('UPDATE events SET at=?',(time.time()-601,))
+        with closing(sqlite3.connect(self.root/'social-actions.sqlite3')) as db, db:
+            db.execute('CREATE TABLE actions (kind TEXT, uid TEXT, event TEXT, status TEXT, at REAL)')
+            db.execute('INSERT INTO actions VALUES (?,?,?,?,?)',('reply','200','42','unknown',time.time()))
+        self.assertFalse(self.social.enqueue_incoming('200','42'))
+
+    async def test_completed_or_running_activity_is_not_retried(self):
+        self.enable();folder=self.project/'data/qq-bridge';folder.mkdir(parents=True)
+        (folder/'qq-runtime.json').write_text(json.dumps({'pid':os.getpid(),'updatedAt':time.time()*1000}))
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        event=hashlib.sha256(b'200:42').hexdigest()[:24]
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:db.execute('UPDATE events SET at=?',(time.time()-601,))
+        log=folder/'activity-log.jsonl'
+        for row in ({'id':'bili-dm-'+event,'event':'started'},
+                    {'id':'bili-dm-'+event,'event':'completed','status':'completed'}):
+            log.write_text(json.dumps(row)+'\n')
+            self.assertFalse(self.social.enqueue_incoming('200','42'))
+
+    async def test_unknown_proactive_send_after_enqueue_prevents_retry(self):
+        self.enable();folder=self.project/'data/qq-bridge';folder.mkdir(parents=True)
+        (folder/'qq-runtime.json').write_text(json.dumps({'pid':os.getpid(),'updatedAt':time.time()*1000}))
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        event=hashlib.sha256(b'200:42').hexdigest()[:24]
+        (folder/'activity-log.jsonl').write_text(json.dumps({'id':'bili-dm-'+event,'event':'completed','status':'failed'})+'\n')
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:db.execute('UPDATE events SET at=?',(time.time()-601,))
+        with closing(sqlite3.connect(self.root/'social-actions.sqlite3')) as db, db:
+            db.execute('CREATE TABLE actions (kind TEXT, uid TEXT, event TEXT, status TEXT, at REAL)')
+            db.execute('INSERT INTO actions VALUES (?,?,?,?,?)',('dm','200','','unknown',time.time()))
+        self.assertFalse(self.social.enqueue_incoming('200','42'))
+
+    async def test_existing_event_database_is_migrated(self):
+        self.enable();folder=self.project/'data/qq-bridge';folder.mkdir(parents=True)
+        (folder/'qq-runtime.json').write_text(json.dumps({'pid':os.getpid(),'updatedAt':time.time()*1000}))
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:
+            db.execute('CREATE TABLE events (event TEXT PRIMARY KEY, at REAL NOT NULL)')
+        self.assertTrue(self.social.enqueue_incoming('200','42'))
+        with closing(sqlite3.connect(self.root/'social-events.sqlite3')) as db, db:
+            self.assertIn('attempt',[row[1] for row in db.execute('PRAGMA table_info(events)')])
 
 
 if __name__=='__main__':unittest.main()

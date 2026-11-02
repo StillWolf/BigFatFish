@@ -28,6 +28,7 @@ from playwright.async_api import async_playwright
 from bilibili_comments import Comments, enabled as comments_enabled
 from bilibili_profile import Profile
 from bilibili_social import Social
+from usage_stats import record_usage
 
 TZ = ZoneInfo('Asia/Shanghai')
 PROJECT = Path(os.environ.get('FISH_PROJECT_ROOT', str(Path(__file__).resolve().parents[1])))
@@ -473,6 +474,8 @@ class Browser:
                         return compact_transcript(transcript, 180), None
                     data = await response.json()
                     summary = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    try: record_usage(PROJECT, 'bilibili', data.get('usage'))
+                    except (OSError, ValueError, TypeError): pass
                     return str(summary).strip()[:260], data.get('usage')
         except Exception as error:
             log('summary_unavailable', reason=type(error).__name__)

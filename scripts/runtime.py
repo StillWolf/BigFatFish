@@ -21,6 +21,8 @@ def main():
     env['FISH_PROJECT_ROOT'] = str(PROJECT)
     env['FISH_DIARY_FAMILY_QQ'] = os.environ['FISH_DIARY_FAMILY_QQ']
     env['FISH_BILIBILI_ROOT'] = str(PROJECT / 'data/bilibili')
+    env['FISH_XHS_ROOT'] = str(PROJECT / 'data/xiaohongshu')
+    env['FISH_XHS_ENABLED'] = '1' if features.get('xiaohongshu') else '0'
     env['FISH_WECHAT_RUNTIME'] = str(PROJECT / 'data/wechat-runtime')
     env['TTS_VOICE'] = config.get('speech', {}).get('voice', 'zh-CN-XiaoyiNeural')
     for name in ('PYTHONHOME', 'PYTHONPATH'):
@@ -37,7 +39,18 @@ def main():
         commands['tts'] = [sys.executable, str(PROJECT / 'scripts/tts-server.py')]
     if features.get('bilibili'):
         commands['bilibili'] = [sys.executable, str(PROJECT / 'scripts/bilibili-runtime.py')]
+    if features.get('bilibili') or features.get('xiaohongshu'):
         commands['speech-model'] = [sys.executable, str(PROJECT / 'scripts/prepare-bilibili-model.py')]
+    if features.get('xiaohongshu'):
+        commands['xiaohongshu'] = [sys.executable, str(PROJECT / 'scripts/xiaohongshu-runtime.py')]
+    monitored = ['dsh'] + [name for name, enabled in (
+        ('activities', features.get('activities')), ('diary', features.get('diary')),
+        ('tts', features.get('tts')), ('bilibili', features.get('bilibili')),
+        ('xiaohongshu', features.get('xiaohongshu'))) if enabled]
+    env['FISH_MONITOR_COMPONENTS'] = ','.join(monitored)
+    # The container supervisor already restarts children; do not run two restart loops.
+    env['FISH_MONITOR_AUTORESTART'] = '0'
+    commands['monitor'] = [sys.executable, str(PROJECT / 'scripts/fish-monitor.py')]
     children, retry = {}, {}
     stopping = False
 

@@ -49,7 +49,7 @@ def main():
         data['qq']['allowGroups'] = [x.strip() for x in ask('允许聊天的群号，逗号分隔，可留空', ','.join(map(str, data['qq'].get('allowGroups', [])))).split(',') if x.strip()]
         data['qq']['proactiveGroup'] = ask('主动水群的群号，可留空', data['qq'].get('proactiveGroup', ''))
         data['bot']['name'] = ask('日常名字', data['bot'].get('name', '小肥鱼'))
-        for feature, label in [('bilibili', '安装 B站浏览器和本地语音识别'), ('wechat', '安装实验性 Linux 微信组件（下载和构建较大）')]:
+        for feature, label in [('bilibili', '安装 B站浏览器和本地语音识别'), ('xiaohongshu', '安装小红书只读浏览器（实验性）'), ('wechat', '安装实验性 Linux 微信组件（下载和构建较大）')]:
             default = 'y' if data['features'].get(feature) or (feature == 'wechat' and args.wechat) else 'n'
             data['features'][feature] = ask(label + ' y/n', default).lower() in ('y', 'yes', '是')
         if not values.get('DEEPSEEK_API_KEY'):
@@ -66,13 +66,13 @@ def main():
         if not values.get(key) or values[key] in ('change-me-to-a-random-string', 'replace-me'):
             values[key] = secrets.token_urlsafe(32)
     defaults = {'NAPCAT_IMAGE': 'mlikiowa/napcat-docker:latest', 'FISH_WEB_PORT': '3080', 'NAPCAT_WEB_PORT': '6099',
-                'BILIBILI_WEB_PORT': '6082', 'WECHAT_WEB_PORT': '6081', 'FISH_ASR_MODEL': 'small', 'HF_ENDPOINT': 'https://huggingface.co'}
+                'BILIBILI_WEB_PORT': '6082', 'XIAOHONGSHU_WEB_PORT': '6083', 'FISH_STATUS_PORT': '18180', 'WECHAT_WEB_PORT': '6081', 'FISH_ASR_MODEL': 'small', 'HF_ENDPOINT': 'https://huggingface.co'}
     for key, default in defaults.items():
         values.setdefault(key, default)
     values['ACCOUNT'] = str(data['qq']['account'])
-    values['FISH_INSTALL_BILIBILI'] = '1' if data['features'].get('bilibili') else '0'
+    values['FISH_INSTALL_BILIBILI'] = '1' if data['features'].get('bilibili') or data['features'].get('xiaohongshu') else '0'
     values['COMPOSE_PROFILES'] = 'wechat' if data['features'].get('wechat') else ''
-    for key in ['FISH_WEB_PORT', 'NAPCAT_WEB_PORT', 'BILIBILI_WEB_PORT', 'WECHAT_WEB_PORT']:
+    for key in ['FISH_WEB_PORT', 'NAPCAT_WEB_PORT', 'BILIBILI_WEB_PORT', 'XIAOHONGSHU_WEB_PORT', 'FISH_STATUS_PORT', 'WECHAT_WEB_PORT']:
         if not values[key].isdigit() or not 1024 <= int(values[key]) <= 65535:
             raise ValueError(f'{key} 需要1024—65535之间的端口')
     data['bot']['mentionNames'] = sorted(set([data['bot']['name'], data['bot'].get('realName', ''), *data['bot'].get('mentionNames', [])]) - {''})

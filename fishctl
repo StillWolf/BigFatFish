@@ -5,7 +5,7 @@ cd "$project_root"
 fish_action="${1:-status}"
 shift || true
 if [[ "$fish_action" = --help || "$fish_action" = -h || "$fish_action" = help ]]; then
-  echo '用法：bash fishctl up|down|restart|status|logs|component-logs|configure|access|wechat|bili|release'
+  echo '用法：bash fishctl up|down|restart|status|logs|component-logs|configure|access|wechat|bili|xhs|release'
   exit 0
 fi
 if [[ "$fish_action" = configure || "$fish_action" = config ]]; then exec python3 scripts/configure.py "$@"; fi
@@ -30,10 +30,11 @@ case "$fish_action" in
   logs) "${compose[@]}" logs --tail 80 "$@" ;;
   component-logs)
     component="${1:-dsh}"
-    case "$component" in dsh|activities|diary|tts|bilibili|speech-model) ;; *) echo '未知组件' >&2; exit 2;; esac
+    case "$component" in dsh|activities|diary|tts|bilibili|xiaohongshu|speech-model|monitor) ;; *) echo '未知组件' >&2; exit 2;; esac
     "${compose[@]}" exec -T fish tail -n 80 -F "/opt/fish/data/logs/${component}.log"
     ;;
   wechat) "${compose[@]}" exec -T fish node scripts/wechat-admin.mjs "$@" ;;
   bili) "${compose[@]}" exec -T fish python scripts/bilibili-admin.py "$@" ;;
-  *) echo '用法：bash fishctl up|down|restart|status|logs|configure|access|wechat|bili|release' >&2; exit 2 ;;
+  xhs) "${compose[@]}" exec -T fish python scripts/xiaohongshu-admin.py "$@" ;;
+  *) echo '用法：bash fishctl up|down|restart|status|logs|configure|access|wechat|bili|xhs|release' >&2; exit 2 ;;
 esac

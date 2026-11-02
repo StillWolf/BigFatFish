@@ -12,7 +12,7 @@
  *   ④ 连续两次注入 → 两次回复都被拦下，不会漏掉第二次
  */
 import { EventEmitter } from 'node:events'
-import { appendFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Config } from '../lib/index.js'
@@ -115,6 +115,13 @@ function makeCtx({ createDelayMs = 0 } = {}) {
 
 const dir = mkdtempSync(join(tmpdir(), 'qq-inject-guard-'))
 const injectFile = join(dir, 'qq-inject.jsonl')
+const previousXhsRoot = process.env.FISH_XHS_ROOT
+const previousXhsEnabled = process.env.FISH_XHS_ENABLED
+const xhsRoot = join(dir, 'xiaohongshu')
+mkdirSync(xhsRoot)
+writeFileSync(join(xhsRoot, 'runtime.env'), 'XHS_TOKEN=synthetic-test-token\n', { mode: 0o600 })
+process.env.FISH_XHS_ROOT = xhsRoot
+process.env.FISH_XHS_ENABLED = '1'
 const config = Config({
   cwd: dir,
   allowUsers: [1001],
@@ -173,6 +180,7 @@ try {
   // Dry-run remains useful without any live transport.
   queueInjection({ kind: 'message', userId: 1001, groupId: 2002, atMe: true, text: '离线干跑', dryRun: true })
   check('离线干跑仍可调用模拟模型', await waitFor(() => followups().some((text) => text.includes('离线干跑'))))
+  check('QQ会话注册小红书只读工具', ['xhs_feed', 'xhs_read', 'xhs_comments', 'xhs_watch'].every((name) => mock.tools.some((tool) => tool.name === name)))
   const session = bridge.sessions.get('g:2002')
   check('离线会话最初没有连接', session?.route.bot == null)
 
@@ -218,6 +226,10 @@ try {
 } finally {
   bridge.stop()
   await sleep(50)
+  if (previousXhsRoot === undefined) delete process.env.FISH_XHS_ROOT
+  else process.env.FISH_XHS_ROOT = previousXhsRoot
+  if (previousXhsEnabled === undefined) delete process.env.FISH_XHS_ENABLED
+  else process.env.FISH_XHS_ENABLED = previousXhsEnabled
   rmSync(dir, { recursive: true, force: true })
 }
 console.log(`结果：${passed} 通过，${failed} 失败`)

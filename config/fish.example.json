@@ -8,7 +8,7 @@
     "allowGroups": [],
     "proactiveGroup": ""
   },
-  "features": { "activities": true, "diary": true, "bilibili": true, "tts": true, "wechat": false },
+  "features": { "activities": true, "diary": true, "bilibili": true, "xiaohongshu": false, "tts": true, "wechat": false },
   "model": "deepseek-flash",
   "speech": { "voice": "zh-CN-XiaoyiNeural", "autoReply": false }
 }

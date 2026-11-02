@@ -1,0 +1,57 @@
+name: Offline checks and container smoke test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+      - name: Install test dependencies
+        run: |
+          python -m pip install 'Pillow==13.0.0' 'PyYAML==6.0.3'
+          npm ci --omit=dev
+      - name: Run offline tests
+        run: |
+          python -W error::ResourceWarning -m unittest discover -s tests -p 'test_*.py' -v
+          node dsh-qq-onebot-bridge/test/offline-reconnect-unit.mjs
+          node dsh-qq-onebot-bridge/test/xiaohongshu-unit.mjs
+          git diff --check
+      - name: Build default image
+        run: docker build --build-arg INSTALL_BILIBILI=1 -t bigfatfish-ci -f deploy/Dockerfile .
+      - name: Smoke test without network, login, or messages
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'docker rm -f fish-ci >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
+          python - "$work/config.json" <<'PY'
+          import json,sys
+          cfg=json.load(open('config/fish.example.json'))
+          cfg['qq'].update(account='100000001', family={'gege':'100000002','jiejie':''}, allowUsers=[], allowGroups=[], proactiveGroup='')
+          cfg['features'].update(activities=False, diary=False, tts=False, bilibili=False, xiaohongshu=False, wechat=False)
+          with open(sys.argv[1], 'w') as f: json.dump(cfg,f)
+          PY
+          docker run -d --name fish-ci --network none \
+            -v "$work/config.json:/run/fish/fish.config.json:ro" \
+            -e DEEPSEEK_API_KEY=synthetic-only -e ONEBOT_ACCESS_TOKEN=synthetic-only \
+            -e NAPCAT_WEBUI_TOKEN=synthetic-only bigfatfish-ci
+          for i in $(seq 1 90); do
+            if docker exec fish-ci python scripts/health.py; then exit 0; fi
+            sleep 2
+          done
+          docker logs --tail 100 fish-ci
+          exit 1

@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -117,6 +119,29 @@ class ConfigurationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.module.render_runtime(self.data)
         self.assertEqual(damaged.read_text(), '{unparseable')
+
+    def test_xiaohongshu_installs_browser_dependencies_without_bilibili(self):
+        self.data['features']['bilibili'] = False
+        self.data['features']['xiaohongshu'] = True
+        source = self.root / 'config/input.json'
+        source.write_text(json.dumps(self.data))
+        subprocess.run([sys.executable, str(SOURCE / 'scripts/configure.py'), '--non-interactive', '--config', str(source)],
+                       check=True, capture_output=True, text=True)
+        env = (self.root / '.env').read_text()
+        self.assertIn("FISH_INSTALL_BILIBILI='1'", env)
+        self.assertIn("XIAOHONGSHU_WEB_PORT='6083'", env)
+
+    def test_install_entrypoint_configure_only_is_offline(self):
+        shutil.copy2(SOURCE / 'install.sh', self.root / 'install.sh')
+        (self.root / 'scripts').mkdir()
+        for name in ('configure.py','fish_config.py'):
+            shutil.copy2(SOURCE / 'scripts' / name, self.root / 'scripts' / name)
+        source = self.root / 'config/input.json';source.write_text(json.dumps(self.data))
+        subprocess.run(['bash', str(self.root/'install.sh'), '--non-interactive', '--config', str(source), '--configure-only'],
+                       cwd=self.root, check=True, capture_output=True, text=True)
+        self.assertTrue((self.root/'.env').is_file())
+        self.assertTrue((self.root/'data/fish.config.json').is_file())
+        self.assertEqual((self.root/'.env').stat().st_mode & 0o777, 0o600)
 
 
 if __name__ == '__main__':

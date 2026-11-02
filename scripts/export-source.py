@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='导出可公开的源码，不读�
 parser.add_argument('--output', default=str(PROJECT / 'dist'))
 args = parser.parse_args()
 version = json.loads((PROJECT / 'package.json').read_text())['version']
-roots = ['README.md', 'LICENSE', 'NOTICE.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AGENTS.md',
+roots = ['README.md', 'LICENSE', 'NOTICE.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AGENTS.md', '.github',
          '.gitignore', '.dockerignore', '.env.example', 'install.sh', 'fishctl', 'compose.yaml',
          'package.json', 'package-lock.json', 'config', 'deploy', 'scripts', 'docs', 'tests',
          'dsh-qq-onebot-bridge', 'dsh-wechat-ai-bridge', 'vendor/wechat-ai']
