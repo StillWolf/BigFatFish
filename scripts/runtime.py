@@ -11,6 +11,10 @@ import time
 from fish_config import PROJECT, load_config, private_write, render_runtime
 
 
+def web_bind():
+    return os.environ.get('FISH_WEB_BIND') or socket.gethostbyname(socket.gethostname())
+
+
 def main():
     config = load_config()
     workspace = render_runtime(config)
@@ -27,7 +31,7 @@ def main():
     env['TTS_VOICE'] = config.get('speech', {}).get('voice', 'zh-CN-XiaoyiNeural')
     for name in ('PYTHONHOME', 'PYTHONPATH'):
         env.pop(name, None)
-    host = socket.gethostbyname(socket.gethostname())
+    host = web_bind()
     public_port = os.environ.get('FISH_WEB_PORT', '3080')
     commands = {'dsh': [str(PROJECT / 'node_modules/.bin/dsh'), 'web', '--host', host, '--port', '3080', '--no-open',
                         '--public-url', f'http://127.0.0.1:{public_port}', '--trusted-host', f'127.0.0.1:{public_port}', f'localhost:{public_port}']}

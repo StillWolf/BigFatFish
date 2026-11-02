@@ -143,6 +143,15 @@ class ConfigurationTests(unittest.TestCase):
         self.assertTrue((self.root/'data/fish.config.json').is_file())
         self.assertEqual((self.root/'.env').stat().st_mode & 0o777, 0o600)
 
+    def test_explicit_web_bind_does_not_require_dns(self):
+        spec = importlib.util.spec_from_file_location('fish_runtime_test', SOURCE / 'scripts/runtime.py')
+        runtime = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {'fish_config': self.module}):
+            spec.loader.exec_module(runtime)
+        with patch.dict(os.environ, {'FISH_WEB_BIND': '127.0.0.1'}), \
+             patch.object(runtime.socket, 'gethostbyname', side_effect=AssertionError('unexpected DNS lookup')):
+            self.assertEqual(runtime.web_bind(), '127.0.0.1')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

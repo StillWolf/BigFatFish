@@ -48,10 +48,13 @@ jobs:
           docker run -d --name fish-ci --network none \
             -v "$work/config.json:/run/fish/fish.config.json:ro" \
             -e DEEPSEEK_API_KEY=synthetic-only -e ONEBOT_ACCESS_TOKEN=synthetic-only \
+            -e FISH_WEB_BIND=127.0.0.1 \
             -e NAPCAT_WEBUI_TOKEN=synthetic-only bigfatfish-ci
           for i in $(seq 1 90); do
-            if docker exec fish-ci python scripts/health.py; then exit 0; fi
+            if docker exec fish-ci python scripts/health.py 2>/dev/null; then exit 0; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' fish-ci)" != true ]; then break; fi
             sleep 2
           done
           docker logs --tail 100 fish-ci
+          if docker cp fish-ci:/opt/fish/data/logs/dsh.log "$work/dsh.log" 2>/dev/null; then tail -100 "$work/dsh.log"; fi
           exit 1
